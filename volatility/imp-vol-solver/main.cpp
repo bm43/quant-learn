@@ -11,9 +11,9 @@ int main(int argc, char **argv) {
   double C_M = 10.5; // Option market price
   // Q: why define the option price when you have the
   // call_price function that calculates it??
-  std::cout<<"computing BlackScholesCall bsc...";
+  // std::cout<<"computing BlackScholesCall bsc...";
   BlackScholesCall bsc(S,K,r,T);
-  std::cout<<"Done, computing interval bisection...";
+  // std::cout<<"Done, computing interval bisection...";
 
   // interval bisection params
   double low_vol = 0.05;
