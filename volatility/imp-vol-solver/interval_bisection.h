@@ -23,8 +23,8 @@ double interval_bisection(double y_target, double m, double n, double epsilon, T
 
         x = 0.5*(m+n);
         y = g(x);
-        std::cout<<"diff: "<<fabs(y-y_target)<<"\n";
-        std::cout<<"epsilon: "<<epsilon<<"\n";
+        // std::cout<<"diff: "<<fabs(y-y_target)<<"\n";
+        // std::cout<<"epsilon: "<<epsilon<<"\n";
     } while (fabs(y-y_target) > epsilon);
     return x;
 }
