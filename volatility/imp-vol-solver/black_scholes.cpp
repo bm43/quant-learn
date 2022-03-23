@@ -8,6 +8,7 @@ BlackScholesCall::BlackScholesCall(double _S, double _K, double _r, double _T): 
 
 }
 
+// https://docs.microsoft.com/en-us/cpp/standard-library/function-objects-in-the-stl?view=msvc-170
 double BlackScholesCall::operator()(double sigma) const {
     return call_price(S,K,r,sigma,T);
 }

@@ -8,8 +8,15 @@
 template<typename T>
 // function object type T
 double interval_bisection(double y_target, double m, double n, double epsilon, T g) {
+    
     double x = 0.5*(m+n);
     double y = g(x);
+
+    std::cout<<"gm: "<<g(m)<<"\n"<<"gn: "<<g(n)<<"\n";
+
+    if ( !( (g(m) < y_target < g(n)) || (g(m) > y_target > g(n)) ) ) {
+        std::invalid_argument("The root is not bracketed");
+    }
 
     do {
 
@@ -26,6 +33,7 @@ double interval_bisection(double y_target, double m, double n, double epsilon, T
         // std::cout<<"diff: "<<fabs(y-y_target)<<"\n";
         // std::cout<<"epsilon: "<<epsilon<<"\n";
     } while (fabs(y-y_target) > epsilon);
+
     return x;
 }
 #endif
