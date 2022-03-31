@@ -10,3 +10,8 @@ int GetInputData(int& N, double& K) {
     cout << endl;
     return 0;
 }
+
+double CallPayoff(double z, double K) {
+    if (z>K) return z-K;
+    return 0.0;
+}
