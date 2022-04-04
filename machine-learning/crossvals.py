@@ -86,6 +86,7 @@ class PurgedGroupTimeSeriesSplit(_BaseKFold):
 
 
 '''
+how to use this: 
 # CV PARAMS
 FOLDS = 5
 GROUP_GAP = 130
