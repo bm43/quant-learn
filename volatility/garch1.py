@@ -1,7 +1,9 @@
 import numpy as np
 
+# below paper was useful when implementing this
+# https://math.berkeley.edu/~btw/thesis4.pdf
 class Garch:
-    def __init__(self, order=(1,1), mean=True):
+    def __init__(self, order: tuple = (1, 1), mean: bool = True):
         self.mean = mean
         self.order = order
     
@@ -17,21 +19,47 @@ class Garch:
 
         Z_t = np.random.standard_normal(size)# white noise
         X_t = np.zeros_like(Z_t)# time series init
-        sigma = np.zeros_like(Z_t)# std dev init
+        var = np.zeros_like(Z_t)# std dev init
 
 
         # maybe modify so it depends on the given order?
         for t in range(1, size):
-            sigma[t] = np.sqrt( a0 + a1*(X_t[t-1])**2 + beta*sigma[t-1] )
-            X_t[t] = sigma[t] * Z_t[t]
-        var = sigma**2
-        import matplotlib.pyplot as plt
-        plt.subplot(121), plt.plot(X_t), plt.title('X_t')
-        plt.subplot(122), plt.plot(var), plt.title('variance')
-        plt.show()
+            var[t] = a0 + a1*(X_t[t-1])**2 + beta*var[t-1]
+            X_t[t] = Z_t[t] * np.sqrt(var[t])
+
+
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.subplot(121), plt.plot(X_t), plt.title('X_t')
+            plt.subplot(122), plt.plot(var), plt.title('variance')
+            plt.show()
 
         return var
 
-    def train_garch_model(self, train: np.ndarray) -> tuple:
-        params = (.1, .1, .1)
+    def simulate_garch_volatility(self, X_t: np.ndarray, params: np.ndarray):
+        omega, alpha, beta = params[0], params[1], params[2]
+        vol = np.zeros(X_t.shape[0])
+        vol[0] = X_t.var()
+        for t in range(1, X_t.shape[0]): # length of input time series
+            vol[t] = omega + alpha*X_t[t]**2 + beta*vol[t-1]
+        return vol
+
+
+    def quasi_max_likelihood(self, x: np.ndarray, vol: np.ndarray):
+        return (1/x.shape[0]) * ((2*np.log(vol) + (x/vol)**2).sum())
+
+    def train_garch_model(self, train: np.ndarray):
+        # unfinished
+        params = np.array([train.var(), .09, .9])
+
         return params
+
+
+g = Garch()
+X_t = np.random.normal(size = 1000)
+params = np.array([.001, .2, .25])
+vol = g.simulate_garch_volatility(X_t, params)
+
+import matplotlib.pyplot as plt
+plt.plot(vol)
+plt.show()
