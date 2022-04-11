@@ -4,7 +4,7 @@ import numpy as np
 # https://math.berkeley.edu/~btw/thesis4.pdf
 class Garch:
     def __init__(self, order: tuple = (1, 1), mean: bool = True):
-        self.mean = mean
+        self.mean = mean # whether X_t has a non-zero mean
         self.order = order
     
     def simulate_garch_process(self, params: tuple = (.001, .2, .25), size: int = 500, plot: bool = True) -> np.ndarray:
@@ -46,20 +46,38 @@ class Garch:
 
 
     def quasi_max_likelihood(self, x: np.ndarray, vol: np.ndarray):
-        return (1/x.shape[0]) * ((2*np.log(vol) + (x/vol)**2).sum())
+        ret = (1/x.shape[0]) * ((2*np.log(vol) + (x/vol)**2).sum())
+        return ret
 
-    def train_garch_model(self, train: np.ndarray):
+    def omega_constraint(self, params):
+        return 1 - params[1] - params[2]
+
+    def objective_function(self, x: np.ndarray, params: np.ndarray):
+        vol = self.simulate_garch_volatility(x,params)
+        return self.quasi_max_likelihood(x, vol)
+
+    def fit(self, X_t: np.ndarray):
         # unfinished
-        params = np.array([train.var(), .09, .9])
+        if self.mean:
+            X_t -= X_t.mean()
+        init_params = np.array([X_t.var(), .09, .9])
+        bounds = [(np.finfo(np.float64).eps, 2*X_t.var(ddof=1)), (0,1), (0,1)]
+        constraint = {"type": "ineq", "fun": self.omega_constraint}
+        from scipy.optimize import minimize
+        self.optim_params = minimize(
+            self.objective_function,
+            init_params,
+            method = "SLSQP",
+            bounds=bounds,
+            args=(X_t),
+            constraints=constraint,
+        )['x']
 
-        return params
+        return self.optim_params
 
-
+'''
 g = Garch()
 X_t = np.random.normal(size = 1000)
-params = np.array([.001, .2, .25])
-vol = g.simulate_garch_volatility(X_t, params)
-
-import matplotlib.pyplot as plt
-plt.plot(vol)
-plt.show()
+g.fit(X_t)
+print(g.optim_params)
+'''
