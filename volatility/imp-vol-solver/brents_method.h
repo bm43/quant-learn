@@ -3,33 +3,15 @@
 #include <cmath>
 #include <iostream>
 template <typename T>
-<<<<<<< HEAD
-double brents_method (double a, double b, double tol, T f) {
-    double fa = f(a);
-    double fb = f(b);
-    
-    if (!(fa*fb < 0)) {
-=======
 double brents_method (double y_target, double a, double b, double TOL, T f) {
     double fa = f(a);
     double fb = f(b);
     std::cout<<"fa: "<<fa<<"\n"<<"fb: "<<fb;
     if ( !( (fa < y_target < fb) || (fa > y_target > fb) ) ) {
->>>>>>> f258de4f319692d10b626b813d161b6cbde0afad
         throw std::invalid_argument("The root is not bracketed");
         return 0;
     }
     if (fabs(fa) < fabs(fb)) {
-<<<<<<< HEAD
-        double dummy = a;
-        a = b;
-        b = dummy;
-    }
-    double c = a;
-    bool mflag = true; // mlflag = True means flag is set, False means flag is cleared
-    do {
-        if (fa != f(c)) && (fb != f(c)) {
-=======
         std::swap(a,b);
     }
 
@@ -40,19 +22,10 @@ double brents_method (double y_target, double a, double b, double TOL, T f) {
     double d = 0.0;
     do {
         if ( (fa != f(c)) && (fb != f(c)) ) {
->>>>>>> f258de4f319692d10b626b813d161b6cbde0afad
             s = ( a * fb * fc / ((fa - fb) * (fa - fc)) )
                 + ( b * fa * fc / ((fb - fa) * (fb - fc)) )
                 + ( c * fa * fb / ((fc - fa) * (fc - fb)) );
         } else {
-<<<<<<< HEAD
-            s = b - fb * (b - a) / (fb - fa);
-        }
-    } while ((fb)==0) || (f(s)==0)) || (fabs(b-a) < tol)
-}
-
-
-=======
             s = b - fb * (b - a) / (fb - fa); // secant method (?)
         }
 
@@ -90,5 +63,4 @@ double brents_method (double y_target, double a, double b, double TOL, T f) {
 
 }
 
->>>>>>> f258de4f319692d10b626b813d161b6cbde0afad
 #endif
