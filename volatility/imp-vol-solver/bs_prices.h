@@ -35,7 +35,7 @@ double call_price(const double S, const double K, const double r, const double s
 
 double put_price(const double S, const double K, const double r, const double sigma, const double T) {
   // p(0) = e−rT KN(−d2) − S(0)N(−d1) at time 0
-  return exp(-r*T) * K * norm_cdf(d_j(2, S, K, r, sigma, T)) - S * norm_cdf(-d_j(1, S, K, r, sigma, T));
+  return exp(-r*T) * K * norm_cdf(-d_j(2, S, K, r, sigma, T)) - S * norm_cdf(-d_j(1, S, K, r, sigma, T));
 }
 
 #endif
