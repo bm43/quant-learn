@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 #include <iostream>
 #include <cmath>
 
@@ -32,5 +32,5 @@ int main() {
     cout << "i = " << i << endl;
     cout << "S(n,i) = " << S(S0,U,D,n,i) << endl;
     return 0;
->>>>>>> d2b34c2a0baed62724d4653b460d67ca50e1a50e
+
 }
