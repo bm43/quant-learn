@@ -4,11 +4,7 @@ import matplotlib.pyplot as plt
 
 class LinearRegression:
 
-    def __init__(self, X: np.array, y: np.array) -> None:
-        # fit intercept by default
-        self.optimal_parameters = self.OLS(X, y)
-
-    def OLS(self, X: np.array, y: np.array):
+    def _ols(self, X: np.array, y: np.array):
 
         # fitting the LR model to data
 
@@ -20,8 +16,14 @@ class LinearRegression:
         beta_hat = np.linalg.inv(X.T @ X) @ X.T @ y
         return beta_hat
 
-    def MLE(X: np.array, y: np.array):
+    def _mle(X: np.array, y: np.array):
         
         # other way to fit model
 
         return
+
+    def fit(self, X: np.array, y: np.array, method: str = "ols") -> LinearRegression:
+        
+        
+        
+        return self
