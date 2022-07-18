@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+from typing import Optional
+from scipy.linalg import solve_triangular
 
 class LinearRegression:
 
@@ -16,14 +17,26 @@ class LinearRegression:
         beta_hat = np.linalg.inv(X.T @ X) @ X.T @ y
         return beta_hat
 
+    def _qr(self, X: np.array, y: np.array):
+        q, r = np.linalg.qr(X)
+        return solve_triangular(r, q.T @ y)
+
     def _mle(X: np.array, y: np.array):
         
         # other way to fit model
 
         return
 
-    def fit(self, X: np.array, y: np.array, method: str = "ols") -> LinearRegression:
+    def fit(self, X: np.array, y: np.array, method: str = "ols"):
         
-        
+        if method == "ols":
+            self.weights = self._ols(X, y)
+        if method == "qr":
+            self.weights = self._qr(X, y)
         
         return self
+    
+    def predict(self, X: np.array, params: Optional[np.array] = None):
+        if params is None:
+            return np.dot(X, self.weights)
+        return np.dot(X, params)
