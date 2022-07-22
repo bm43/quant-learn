@@ -18,6 +18,10 @@ crits = rv_p.pdf(x_q) / (rv_q.pdf(x_q) * k)
 coins = np.random.rand(len(x_q))
 x_p = x_q[coins < crits]
 
+# mean of our beta distribution is .25 since a = 2 and b = 6
+# estimation of this target mean via monte carlo integration:
+print(x_p.mean())
+
 plt.subplot(211)
 sns.distplot(x_q, kde=False)
 plt.title("samples from proposal distribution")
@@ -26,6 +30,12 @@ sns.distplot(x_p, kde=False)
 plt.title("samples filtered with rejection sampling")
 plt.tight_layout()
 plt.show()
+
+# drawback of rejection sampling:
+print((len(x_q0) - len(x_p)) / len(x_q0), " % of the samples was rejected.")
+
+# estimating target mean with importance sampling:
+print("from importance sampling, estimate of target mean is: ",np.mean(x_q0 * rv_p.pdf(x_q0) / rv_q.pdf(x_q0)))
 
 # b)
 plt.subplot(211)
