@@ -61,6 +61,8 @@ print(output.size())
 # see how long it takes to process one image
 '''
 
+# add linreg with mle, quantization function (ideally implement a paper), add ppr to machine learning/neural network
+
 # model eval mode:
 import pydicom as dicom
 # https://pydicom.github.io/pydicom/stable/old/working_with_pixel_data.html
