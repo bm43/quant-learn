@@ -72,7 +72,7 @@ def check_input(model, data_path):
     with torch.no_grad():
         model.eval()
         input = torch.from_numpy(img.pixel_array).reshape(1,1,1,512,512)
-        #input = input.long()
+        input = input.type(torch.FloatTensor)
         output = model(input)
         return output
     
