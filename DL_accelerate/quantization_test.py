@@ -1,8 +1,12 @@
+# testing out DL model quantization with pytorch
+# author: Hyung Jip Lee
+
 MODEL_PATH = "C:/Users/USER-PC/OneDrive/문서/projects/kaggle/DL_Projects/weights/"
 
 # plan:
 # input model file
 
+from cgi import print_arguments
 import time
 import numpy as np
 import torch
@@ -49,7 +53,7 @@ def show_weights(model_file):
     return state_dict
 
 #print(show_weights(MODEL_PATH+'3d-resnet10_T1wCE_fold3_0.664.pth').keys())
-print(show_weights(MODEL_PATH+'3d-resnet10_T1wCE_fold3_0.664.pth')['conv1.weight'].size())
+print(show_weights(MODEL_PATH+'3d-resnet10_T1wCE_fold3_0.664.pth'))
 # layer마다 key가 있고 그에 해당하는 weight vector가 value로 저장됨.
 
 '''
@@ -79,13 +83,62 @@ def check_input(model, data_path):
         return output
     
 s = time.time()
-print(check_input(model, data_path))
+output = check_input(model, data_path)
 e = time.time()
 
-print(s-e)
+print("output: ", output)
+print("single input time: ", e-s)
 
 # quantize model
-# see if it's faster processing
+# see if it's faster processing and less memory:
+
+def print_model_size(model):
+    torch.save(model.state_dict(), "tmp.pt")
+    print("%.2f MB" %(os.path.getsize("tmp.pt")/1e6))
+    os.remove('tmp.pt')
+
+print("model before post training static quantization: ", print_model_size(model), '\n')
+
+# post training static quantization memory:
+backend = "qnnpack"
+model.qconfig = torch.quantization.get_default_qconfig(backend)
+quantized_model = torch.quantization.prepare(model, inplace = False)
+quantized_model = torch.quantization.convert(quantized_model, inplace=False)
+# convert weights to 8bit integers
+
+print("quantized model size: ", print_model_size(quantized_model), '\n')
+
+def check_q_input(model, data_path):
+    img = dicom.dcmread(data_path)
+    
+    with torch.no_grad():
+        model.eval()
+        input = torch.from_numpy(img.pixel_array).reshape(1,1,1,512,512)
+        cuda0 = torch.device('cuda:0')
+        input.to(cuda0)
+        output = model(input)
+        return output
+
+
+# measure time:
+s= time.time()
+q_output = check_q_input(quantized_model, data_path)
+e = time.time()
+print("q model took: ", e-s)
+
+# all above code was written in pytorch 1.12.0
+
+'''
+# save the quantized model:
+torch.save(quantized_model.state_dict(), "C:/Users/USER-PC/OneDrive/문서/projects/kaggle/DL_Projects/weights/0664_quantized.pth")
+
+# load q model:
+quantized_model = load_model("C:/Users/USER-PC/OneDrive/문서/projects/kaggle/DL_Projects/weights/0664_quantized.pth")
+# show q model weigths:
+print("model weights after quantization: ", show_weights(quantized_model))
+'''
+
+
 # find papers about quantization to see if it can make model any faster
 
 # find dataset so that you can quantize while training
