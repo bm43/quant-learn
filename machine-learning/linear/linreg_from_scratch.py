@@ -1,3 +1,6 @@
+# linear regression with different training methods
+# author: Hyung Jip Lee
+
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Optional
