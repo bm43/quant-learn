@@ -1,8 +1,6 @@
 # testing out DL model quantization with pytorch
 # author: Hyung Jip Lee
 
-MODEL_PATH = "C:/Users/USER-PC/OneDrive/문서/projects/kaggle/DL_Projects/weights/"
-
 # plan:
 # input model file
 
@@ -36,6 +34,8 @@ warnings.filterwarnings(
 
 from torch.quantization import QuantStub, DeQuantStub
 
+MODEL_PATH = "C:/Users/SamSung/Desktop/pers_research/kaggle/mri-resnet10/weights/"
+
 def load_model(model_file):
     #device = torch.device('cuda')
     model = monai.networks.nets.resnet10(spatial_dims=3, n_input_channels=1, n_classes=1)
@@ -45,7 +45,7 @@ def load_model(model_file):
     return model
 
 model = load_model(MODEL_PATH+'3d-resnet10_T1wCE_fold3_0.664.pth')
-
+#model class is monai.networks.nets.resnet.ResNet
 
 # see its weights
 def show_weights(model_file):
@@ -53,7 +53,7 @@ def show_weights(model_file):
     return state_dict
 
 #print(show_weights(MODEL_PATH+'3d-resnet10_T1wCE_fold3_0.664.pth').keys())
-print(show_weights(MODEL_PATH+'3d-resnet10_T1wCE_fold3_0.664.pth'))
+#print(show_weights(MODEL_PATH+'3d-resnet10_T1wCE_fold3_0.664.pth'))
 # layer마다 key가 있고 그에 해당하는 weight vector가 value로 저장됨.
 
 '''
@@ -71,10 +71,14 @@ print(output.size())
 import pydicom as dicom
 # https://pydicom.github.io/pydicom/stable/old/working_with_pixel_data.html
 
-data_path = "C:/Users/USER-PC/OneDrive/문서/projects/quant-learn/DL_accelerate/sample_images/Image-16.dcm"
+# path in PC:
+#data_path = ""
+
+# path in laptop:
+data_path = "C:/Users/SamSung/Desktop/pers_research/quant_stuff/quant-learn/DL_accelerate/sample_images/Image-14.dcm"
+
 def check_input(model, data_path):
     img = dicom.dcmread(data_path)
-    
     with torch.no_grad():
         model.eval()
         input = torch.from_numpy(img.pixel_array).reshape(1,1,1,512,512)
@@ -100,10 +104,13 @@ def print_model_size(model):
 print("model before post training static quantization: ", print_model_size(model), '\n')
 
 # post training static quantization memory:
+# this does smth to the model such that:
+#  Could not run 'quantized::conv3d.new' with arguments from the 'CPU' backend
+# occurs
 backend = "qnnpack"
 model.qconfig = torch.quantization.get_default_qconfig(backend)
-quantized_model = torch.quantization.prepare(model, inplace = False)
-quantized_model = torch.quantization.convert(quantized_model, inplace=False)
+#quantized_model = torch.quantization.prepare(model, inplace = False)
+#quantized_model = torch.quantization.convert(quantized_model, inplace=False)
 # convert weights to 8bit integers
 
 print("quantized model size: ", print_model_size(quantized_model), '\n')
@@ -114,8 +121,7 @@ def check_q_input(model, data_path):
     with torch.no_grad():
         model.eval()
         input = torch.from_numpy(img.pixel_array).reshape(1,1,1,512,512)
-        cuda0 = torch.device('cuda:0')
-        input.to(cuda0)
+        
         output = model(input)
         return output
 
