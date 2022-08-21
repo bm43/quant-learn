@@ -1,13 +1,17 @@
 # linear regression with different training methods
 # author: Hyung Jip Lee
 
+# how to write a good class:
+# https://towardsdatascience.com/how-to-write-awesome-python-classes-f2e1f05e51a9
+
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Optional
 from scipy.linalg import solve_triangular
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Union
 from scipy.optimize import minimize
+
 
 class LinearRegression:
 
@@ -78,3 +82,11 @@ class LinearRegression_MLE:
 
     def predict(self, X, thetas):
         return X @ thetas
+
+@dataclass
+class RegressionMetrics:
+    model: Union[LinearRegression, LinearRegression_MLE]
+    X: np.ndarray
+    y: np.ndarray
+    theta: np.ndarray
+    # to finish
