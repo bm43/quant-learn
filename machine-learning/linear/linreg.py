@@ -7,7 +7,6 @@ from typing import Optional
 from scipy.linalg import solve_triangular
 from dataclasses import dataclass, field
 from typing import Optional
-from numpy.typing import NDArray
 from scipy.optimize import minimize
 
 class LinearRegression:
@@ -45,7 +44,8 @@ class LinearRegression:
 @dataclass
 class LinearRegression_MLE:
 
-    theta: Optional[NDArray] = field(init = False, default = np.array([]))
+    
+    theta: Optional[np.ndarray] = field(init = False, default = np.array([]))
     # specify type of  variables in class (self.something)
 
     def loglikelihood(self, y, yhat):

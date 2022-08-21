@@ -1,6 +1,7 @@
 import numpy as np
-from linreg_from_scratch import LinearRegression
+from linreg import LinearRegression
 import matplotlib.pyplot as plt
+
 def generate_dumb_data(rows: int):
         
         X = np.random.normal(50, 10, rows).reshape(rows)
@@ -20,8 +21,10 @@ def test_plot(X, y, beta_hat):
 
 X, y = generate_dumb_data(100)
 
-lr = LinearRegression(X, y)
+lr = LinearRegression()
 
-print(lr.optimal_parameters)
+lr.fit(X,y)
 
-test_plot(X, y, lr.optimal_parameters)
+print(lr.weights)
+
+test_plot(X, y, lr.weights)
