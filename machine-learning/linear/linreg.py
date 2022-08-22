@@ -4,6 +4,8 @@
 # how to write a good class:
 # https://towardsdatascience.com/how-to-write-awesome-python-classes-f2e1f05e51a9
 
+from __future__ import annotations
+
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Optional
@@ -11,6 +13,11 @@ from scipy.linalg import solve_triangular
 from dataclasses import dataclass, field
 from typing import Optional, Union
 from scipy.optimize import minimize
+
+# dataclass just allows you to write less code
+# self.bla -> bla: type hint
+
+# field is to give additional information
 
 @dataclass
 class LinearRegression:
@@ -55,7 +62,6 @@ class LinearRegression:
 @dataclass
 class LinearRegression_MLE:
 
-    
     theta: Optional[np.ndarray] = field(init = False, default = np.array([]))
     # specify type of  variables in class (self.something)
 
@@ -96,4 +102,32 @@ class RegressionMetrics:
     X: np.ndarray
     y: np.ndarray
     theta: np.ndarray
-    
+    predictions: Optional[np.ndarray] = field(init=False, default=np.array([]))
+    residuals: np.ndarray = field(init=False, default=np.array([]))
+    rss: float = field(init=False, default=0.0) # residual sum of sq
+    ess: float = field(init=False, default=0.0) # explained sum of sq
+    tss: float = field(init=False, default=0.0) # total sum of sq
+    r2: float = field(init=False, default=0.0)
+    mse: float = field(init=False, default=0.0)
+    mae: float = field(init=False, default=0.0)
+    # parameter covariance?
+    # param_covar = s2 * inv(X.T @ params @ X)
+    # https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fwwwbrr.cr.usgs.gov%2Fhill_tiedeman_book%2Fpresentation%2520files%2F07a-ParamStats.ppt&wdOrigin=BROWSELINK
+
+    def __post_init__(self) -> None:
+        # n: number of samples
+        # p: number of features
+        n, p = self.X.shape[0], self.X.shape[1]
+        # baseline y:
+        ybar = self.y.mean()
+
+        # getattr 오브젝트의 attribute 값을 리턴
+        # getattr(c, 'x') <=> c.x
+        self.predictions = getattr(self.obj, "predict")(self.X)
+        self.residuals = self.y - self.predictions
+        self.rss = self.residuals @ self.residuals
+        self.tss = ((self.y - ybar) @ (self.y - ybar))
+        self.ess = self.tss - self.rss
+        self.r2 = self.ess / self.tss
+        self.mse = self.rss / n
+        self.mae = abs(self.residuals) / n
