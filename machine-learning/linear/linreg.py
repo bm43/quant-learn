@@ -56,7 +56,7 @@ class RegressionMetrics:
 
 @dataclass
 class LinearRegression:
-
+    
     metrics: Optional[RegressionMetrics] = field(init=False)
 
     def _ols(self, X: np.ndarray, y: np.ndarray):
