@@ -6,6 +6,7 @@
 
 #from __future__ import annotations
 
+from lib2to3.pgen2.token import OP
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Optional
@@ -21,9 +22,10 @@ from scipy.optimize import minimize
 
 @dataclass
 class RegressionMetrics:
+    #model: Union[LinearRegression, LinearRegression_MLE]
     X: np.ndarray
     y: np.ndarray
-    theta: np.ndarray
+    #theta: np.ndarray
     predictions: Optional[np.ndarray] = field(init=False, default=np.array([]))
     residuals: np.ndarray = field(init=False, default=np.array([]))
     rss: float = field(init=False, default=0.0) # residual sum of sq
@@ -55,11 +57,13 @@ class RegressionMetrics:
         self.mae = abs(self.residuals) / n
 
 @dataclass
-class LinearRegression:
-    
-    metrics: Optional[RegressionMetrics] = field(init=False)
+class LinearRegression(object):
 
-    def _ols(self, X: np.ndarray, y: np.ndarray):
+    theta: np.ndarray = field(init=False, default=np.array([]))
+    #metrics: Optional[RegressionMetrics] = field(init=False)
+    metrics: Optional[dict] = field(init=False)
+
+    def _ols(self, X: np.ndarray, y: np.ndarray) -> np.array:
 
         # fitting the LR model to data
         # with ordinary least squares
@@ -72,33 +76,52 @@ class LinearRegression:
         beta_hat = np.linalg.inv(X.T @ X) @ X.T @ y
         return beta_hat
 
-    def _qr(self, X: np.array, y: np.array):
+    def _qr(self, X: np.array, y: np.array) -> np.array:
         q, r = np.linalg.qr(X)
         return solve_triangular(r, q.T @ y)
 
-    def _cholesky(self, X: np.ndarray, y: np.ndarray):
+    def _cholesky(self, X: np.ndarray, y: np.ndarray) -> np.array:
         A = np.linalg.cholesky(X.T @ X)
         B = solve_triangular(A, X.T @ y, lower=True)
         return solve_triangular(A.T, B)
 
-    def fit(self, X: np.ndarray, y: np.ndarray, method: str = "ols"):
+    def get_metrics(self, X: np.array, y: np.array) -> dict:
+        X=X.reshape(-1,1)
+        n, p = X.shape[0], X.shape[1]
+        ybar = y.mean()
+        predictions = self.predict(X, y)
+        residuals = y - predictions
+        rss = residuals @ residuals
+        tss = (y-ybar)@(y-ybar).T
+        ess = tss - rss
+        r2 = ess/tss
+        mse = rss/n
+        mae = abs(residuals)/n
+
+        return {"r2": r2, "mse": mse, "mae": mae}
+
+    def fit(self, X: np.ndarray, y: np.ndarray, method: str = "ols", get_metric: bool = False):
         
         if method == "ols":
             self.theta = self._ols(X, y)
-        if method == "qr":
+        elif method == "qr":
             self.theta = self._qr(X, y)
-        if method == "cholesky":
+        elif method == "cholesky":
             self.theta = self._cholesky(X, y)
         
+        if get_metric:
+            self.metrics = self.get_metrics(X, y)
+
         return self
     
     def predict(self, X: np.array, params: Optional[np.array] = None):
         if params is None:
-            return np.dot(X, self.weights)
-        return np.dot(X, params)
+            return np.dot(X, self.theta)
+        print("params shape: ", params.shape)
+        return np.dot(X, params.T)
 
 @dataclass
-class LinearRegression_MLE:
+class LinearRegression_MLE(object):
 
     theta: Optional[np.ndarray] = field(init = False, default = np.array([]))
     # specify type of  variables in class (self.something)
@@ -133,3 +156,10 @@ class LinearRegression_MLE:
 
     def predict(self, X, thetas):
         return X @ thetas
+
+def compute_metrics(
+    #model: Union[LinearRegression, LinearRegression_MLE],
+    X: np.ndarray, y: np.ndarray
+    ) -> RegressionMetrics:
+    return RegressionMetrics(X, y)
+    #return RegressionMetrics(model, X, y, model.theta)
