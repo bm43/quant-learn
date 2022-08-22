@@ -4,7 +4,7 @@
 # how to write a good class:
 # https://towardsdatascience.com/how-to-write-awesome-python-classes-f2e1f05e51a9
 
-from __future__ import annotations
+#from __future__ import annotations
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,7 +20,44 @@ from scipy.optimize import minimize
 # field is to give additional information
 
 @dataclass
+class RegressionMetrics:
+    X: np.ndarray
+    y: np.ndarray
+    theta: np.ndarray
+    predictions: Optional[np.ndarray] = field(init=False, default=np.array([]))
+    residuals: np.ndarray = field(init=False, default=np.array([]))
+    rss: float = field(init=False, default=0.0) # residual sum of sq
+    ess: float = field(init=False, default=0.0) # explained sum of sq
+    tss: float = field(init=False, default=0.0) # total sum of sq
+    r2: float = field(init=False, default=0.0)
+    mse: float = field(init=False, default=0.0)
+    mae: float = field(init=False, default=0.0)
+    # parameter covariance?
+    # param_covar = s2 * inv(X.T @ params @ X)
+    # https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fwwwbrr.cr.usgs.gov%2Fhill_tiedeman_book%2Fpresentation%2520files%2F07a-ParamStats.ppt&wdOrigin=BROWSELINK
+
+    def __post_init__(self) -> None:
+        # n: number of samples
+        # p: number of features
+        n, p = self.X.shape[0], self.X.shape[1]
+        # baseline y:
+        ybar = self.y.mean()
+
+        # getattr 오브젝트의 attribute 값을 리턴
+        # getattr(c, 'x') <=> c.x
+        self.predictions = getattr(self.obj, "predict")(self.X)
+        self.residuals = self.y - self.predictions
+        self.rss = self.residuals @ self.residuals
+        self.tss = ((self.y - ybar) @ (self.y - ybar))
+        self.ess = self.tss - self.rss
+        self.r2 = self.ess / self.tss
+        self.mse = self.rss / n
+        self.mae = abs(self.residuals) / n
+
+@dataclass
 class LinearRegression:
+
+    metrics: Optional[RegressionMetrics] = field(init=False)
 
     def _ols(self, X: np.ndarray, y: np.ndarray):
 
@@ -47,14 +84,15 @@ class LinearRegression:
     def fit(self, X: np.ndarray, y: np.ndarray, method: str = "ols"):
         
         if method == "ols":
-            self.weights = self._ols(X, y)
+            self.theta = self._ols(X, y)
         if method == "qr":
-            self.weights = self._qr(X, y)
+            self.theta = self._qr(X, y)
         if method == "cholesky":
-            self.weights = self._cholesky(X, y)
+            self.theta = self._cholesky(X, y)
+        
         return self
     
-    def predict(self, X: np.array, method: str, params: Optional[np.array] = None):
+    def predict(self, X: np.array, params: Optional[np.array] = None):
         if params is None:
             return np.dot(X, self.weights)
         return np.dot(X, params)
@@ -95,39 +133,3 @@ class LinearRegression_MLE:
 
     def predict(self, X, thetas):
         return X @ thetas
-
-@dataclass
-class RegressionMetrics:
-    model: Union[LinearRegression, LinearRegression_MLE]
-    X: np.ndarray
-    y: np.ndarray
-    theta: np.ndarray
-    predictions: Optional[np.ndarray] = field(init=False, default=np.array([]))
-    residuals: np.ndarray = field(init=False, default=np.array([]))
-    rss: float = field(init=False, default=0.0) # residual sum of sq
-    ess: float = field(init=False, default=0.0) # explained sum of sq
-    tss: float = field(init=False, default=0.0) # total sum of sq
-    r2: float = field(init=False, default=0.0)
-    mse: float = field(init=False, default=0.0)
-    mae: float = field(init=False, default=0.0)
-    # parameter covariance?
-    # param_covar = s2 * inv(X.T @ params @ X)
-    # https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fwwwbrr.cr.usgs.gov%2Fhill_tiedeman_book%2Fpresentation%2520files%2F07a-ParamStats.ppt&wdOrigin=BROWSELINK
-
-    def __post_init__(self) -> None:
-        # n: number of samples
-        # p: number of features
-        n, p = self.X.shape[0], self.X.shape[1]
-        # baseline y:
-        ybar = self.y.mean()
-
-        # getattr 오브젝트의 attribute 값을 리턴
-        # getattr(c, 'x') <=> c.x
-        self.predictions = getattr(self.obj, "predict")(self.X)
-        self.residuals = self.y - self.predictions
-        self.rss = self.residuals @ self.residuals
-        self.tss = ((self.y - ybar) @ (self.y - ybar))
-        self.ess = self.tss - self.rss
-        self.r2 = self.ess / self.tss
-        self.mse = self.rss / n
-        self.mae = abs(self.residuals) / n
