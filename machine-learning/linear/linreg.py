@@ -4,7 +4,7 @@
 # how to write a good class:
 # https://towardsdatascience.com/how-to-write-awesome-python-classes-f2e1f05e51a9
 
-from __future__ import annotations
+#from __future__ import annotations
 
 import numpy as np
 import matplotlib.pyplot as plt
