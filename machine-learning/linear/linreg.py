@@ -12,12 +12,13 @@ from dataclasses import dataclass, field
 from typing import Optional, Union
 from scipy.optimize import minimize
 
-
+@dataclass
 class LinearRegression:
 
-    def _ols(self, X: np.array, y: np.array):
+    def _ols(self, X: np.ndarray, y: np.ndarray):
 
         # fitting the LR model to data
+        # with ordinary least squares
 
         # add column of ones to compute y-intersect = Beta_0
         X = np.c_[X, np.ones(X.shape[0])]
@@ -31,13 +32,19 @@ class LinearRegression:
         q, r = np.linalg.qr(X)
         return solve_triangular(r, q.T @ y)
 
-    def fit(self, X: np.array, y: np.array, method: str = "ols"):
+    def _cholesky(self, X: np.ndarray, y: np.ndarray):
+        A = np.linalg.cholesky(X.T @ X)
+        B = solve_triangular(A, X.T @ y, lower=True)
+        return solve_triangular(A.T, B)
+
+    def fit(self, X: np.ndarray, y: np.ndarray, method: str = "ols"):
         
         if method == "ols":
             self.weights = self._ols(X, y)
         if method == "qr":
             self.weights = self._qr(X, y)
-        
+        if method == "cholesky":
+            self.weights = self._cholesky(X, y)
         return self
     
     def predict(self, X: np.array, method: str, params: Optional[np.array] = None):
@@ -89,4 +96,4 @@ class RegressionMetrics:
     X: np.ndarray
     y: np.ndarray
     theta: np.ndarray
-    # to finish
+    
