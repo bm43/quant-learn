@@ -33,7 +33,7 @@ class LogisticRegression:
         return guess
 
     def fit(self,
-        X: np.ndarray, y: np.ndarray, method: str = "", iter: int = 30):
+        X: np.ndarray, y: np.ndarray, method: str = "irls", iter: int = 30):
         if method == "irls":
             self.theta = self._irls(X, y, iter=iter)
             return self
