@@ -39,16 +39,16 @@ containing two call options
 Indeed, price of gcc depends on the price diff of those
 2 options."""
 def GloballyCappedContractPricer(c: float, g: float, S: float,\
-    K: float, r: float, sigma: float, T: float):
+    r: float, T: float):
     return (1+g)*np.exp(-r*T) + (1/S) *( C(S*(1+g)) - C(S*(1+c)))
 
 """
 There is no closed-form solution
 for price of locally-capped contracts.
 So we can use monte carlo simulation
-or 
+or find semi-closed form
 """
-def LocallyCappedContractPricer():
-    maturity = 1
-    n = 12
+def LocallyCappedContractPricer(c: float, g: float, S: float,\
+    K: float, r: float, sigma: float, T: float):
+    
     return
