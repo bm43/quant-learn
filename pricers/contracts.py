@@ -48,7 +48,15 @@ for price of locally-capped contracts.
 So we can use monte carlo simulation
 or find semi-closed form
 """
+
+def _Q(R: float): # describes distribution of C_k
+    return
+
+def phi_C(g: float, c: float): # characteristic function of C_k
+    return
+
 def LocallyCappedContractPricer(c: float, g: float, S: float,\
     K: float, r: float, sigma: float, T: float):
     
     return
+
