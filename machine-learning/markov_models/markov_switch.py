@@ -85,6 +85,9 @@ class MarkovSwitch:
     return [H_filter, pred_p]
     
   def _qp(self, filter_p: np.ndarray, pred_p: np.ndarray, P: np.ndarray):
+    # posterior joint proba
+    # https://homepage.ntu.edu.tw/~ckuan/pdf/Lec-Markov_note.pdf
+    # page 8
     return
 
   def _e_step(self, obs: np.ndarray, theta: np.ndarray) -> np.ndarray:
@@ -92,14 +95,12 @@ class MarkovSwitch:
     # theta = initial guess, input to em algo
     H_filter, pred_p = self._hamilton_filter(obs, theta)
 
-    return self._qp(filter_p = H_filter, pred_p = )
-    return
+    return self._qp(filter_p = H_filter, pred_p = pred_p, P=self.trans_matrix)
 
   def _em(self, obs: np.ndarray, iter: int = 10):
     # http://www.columbia.edu/~mh2078/MachineLearningORFE/EM_Algorithm.pdf
     n = obs.shape[0]
     n_regime = self.n_regime
-
 
     idx = np.random.randint(low=0, high=n, size=n_regime)
     mu_k = obs[idx] # means for regimes
@@ -109,6 +110,9 @@ class MarkovSwitch:
 
     for i in range(iter):
       theta[i] = np.concatenate((p_k, mu_k, sig))
-      max_low_bound = self._estep
+      max_low_bound = self._estep(obs, theta[i])
     
   def fit(self, obs: np.ndarray, iter: int = 10):
+    self._em(obs, iter = iter)
+    
+    return self
