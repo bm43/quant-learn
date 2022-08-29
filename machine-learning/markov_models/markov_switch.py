@@ -11,8 +11,9 @@ https://econweb.ucsd.edu/~jhamilto/palgrav1.pdf
 """
 
 import random
+from typing import Tuple
 import numpy as np
-
+from itertools import chain #이런건 어디서 배우는거냐 대체 
 import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import norm
@@ -24,13 +25,24 @@ class MarkovSwitch:
   
   trans_matrix: np.ndarray = field(init=False)
   n_regime: int = 2
+  filter_p: np.ndarray = field(init=False)
+  pred_p: np.ndarray = field(init=False)
+  smoothed_p: np.ndarray = field(init=False)
+  em_params: pd.Series = field(init=False)
 
   def __post_init__(self) -> None:
     self.trans_matrix = np.zeros((self.n_regime, self.n_regime))
-    
+    self.filter_p = np.array([])
+    self.pred_p = np.array([])
+    self.smoothed_p = np.array([])
+    self.theta = np.array([])
+    self.em_params = pd.Series([])
 
   def _sigmoid(self, x: np.ndarray) -> np.ndarray:
     return 1/(1+np.exp(-x))
+  
+  def _inv_sigmoid(self, x: np.ndarray) -> np.ndarray[np.float64]:
+    return -np.log((1-x)/x)
 
   def _normpdf(self, obs: np.ndarray[np.float64], mean: np.ndarray[np.float64], std: np.ndarray[np.float64]) -> np.ndarray[np.float64]:
     # = f(y_t | s_t, F_{t-1})
@@ -83,19 +95,55 @@ class MarkovSwitch:
     H_filter[-1] = exp/exp.sum()
 
     return [H_filter, pred_p]
-    
-  def _qp(self, filter_p: np.ndarray, pred_p: np.ndarray, P: np.ndarray):
-    # posterior joint proba
+  
+  def _kims_algo(self, filter_p: np.ndarray[np.float64], pred_p: np.ndarray[np.float64], P: np.ndarray[np.float64]) -> np.ndarray[np.float64]:
+    n = filter_p.shape[0] # how many data points
+    smoothed_p = np.zeros_like(filter_p)
+
+    # set smoothed_p[T] = filter_p[T]
+    smoothed_p[-1] = filter_p[-1]
+
+    # get smooth probas
+    for t in range(n-1, 0, -1):
+      a = P @ (smoothed_p[t] / pred_p[t])
+      smoothed_p[t-1] = filter_p[t-1] * a
+
+    return smoothed_p
+
+  def _qp(self, filter_p: np.ndarray, pred_p: np.ndarray, P: np.ndarray) -> np.ndarray:
+    # posterior joint proba computed w/ kim's smoothing algorithm
     # https://homepage.ntu.edu.tw/~ckuan/pdf/Lec-Markov_note.pdf
     # page 8
-    return
+    smoothed_p = self._kims_algo(filter_p, pred_p, P)
+    n = smoothed_p.shape[0]
+    qp = np.zeros((n, 2** self.n_regime))
+    # compute joint proba at t, t-1, ... 1
+    for t in range(1, n):
+      # (st-1 = 0, st = 0) and (st-1 = 0, st = 1)
+      qp[p, :2] = (P[0] * smoothed_p[t] * filter_p[t-1, 0] / pred_p[t])
+      # (st-1 = 1, st = 0) and (st-1 = 1, st = 1)
+      qp[t, 2:] = (P[1] * smoothed_p[t] * filter_p[t-1, 1] / pred_p[t])
+    return np.concatenate((smoothed_p, qp), axis=1)
 
   def _e_step(self, obs: np.ndarray, theta: np.ndarray) -> np.ndarray:
     # obs for observations
     # theta = initial guess, input to em algo
     H_filter, pred_p = self._hamilton_filter(obs, theta)
+    return self._qp(filter_p = H_filter, pred_p = pred_p, P=self.trans_matrix)    
 
-    return self._qp(filter_p = H_filter, pred_p = pred_p, P=self.trans_matrix)
+  def _m_step(self, obs: np.ndarray, qp: np.ndarray) -> Tuple[np.ndarray, np.ndarray, List[float]]:
+    # qp is posterior probas
+    p00 = qp[2:, 2].sum()/qp[1:, 0].sum()
+    p11 = qp[2:, 4].sum()/qp[1:, 1].sum()
+    pkk = np.array([p00, 1-p11])
+    
+    mu0 = (qp[1:, 0] * obs[1:]).sum()/qp[1:, 0].sum()
+    mu1 = (qp[1:, 1] * obs[1:]).sum()/qp[1:, 1].sum()
+    muk = np.array([mu0,mu1])
+    spr1 = obs[1:]-mu0
+    spr2 = obs[1:]-mu1
+    var = qp[1:, 0] * spr1 ** 2 + qp[1:, 1] * spr2 ** 2
+    return pkk, muk, [np.sqrt(var.mean())]
 
   def _em(self, obs: np.ndarray, iter: int = 10):
     # http://www.columbia.edu/~mh2078/MachineLearningORFE/EM_Algorithm.pdf
@@ -110,9 +158,28 @@ class MarkovSwitch:
 
     for i in range(iter):
       theta[i] = np.concatenate((p_k, mu_k, sig))
-      max_low_bound = self._estep(obs, theta[i])
+
+      # E step:
+      qp = self._estep(obs, theta[i])
+
+      # M step:
+      p_kk, mu_k, sig = self._m_step(self, obs, qp)
+      p_k = self._inv_sigmoid(p_kk)
+    
+    cols = self._make_titles(self)
+    self.em_params = pd.DataFrame(theta, columns=cols)
+    self.em_params.index.name = "em_iters"
+    self.em_params[["p11", "p22"]] = self.em_params[["p11", "p22"]].apply(self._sigmoid)
+    return self
     
   def fit(self, obs: np.ndarray, iter: int = 10):
     self._em(obs, iter = iter)
-    
+    param_guess = self.em_params
     return self
+
+  def _make_titles(self) -> list:
+    n = self.n_regime
+    col1 = list("p{i}{i}".format(i=i) for i in range(1, n+1))
+    col2 = list("regime{i}_mean".format(i=i) for i in range(1, n+1))
+    col3 = ["regime_vol"]
+    return list(chain(col1, col2, col3))
