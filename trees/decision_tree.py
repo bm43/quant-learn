@@ -73,13 +73,13 @@ class DecisionTreeClassifier:
 
         return parent_loss - child_loss
 
-    def _best_split(self, X, y, feats) -> tuple(float, float):
+    def _best_split(self, X, y, feats, method) -> tuple(float, float):
         split = {'score': -1, 'feat': None, 'thresh': None}
         for f in feats:
             X_feat = X[:,f]
             thresholds = np.unique(X_feat)
             for thr in thresholds:
-                score = self._info_gain(X_feat, y, thr)
+                score = self._info_gain(X_feat, y, thr, method)
 
                 if score > split['score']:
                     split['score'] = score
@@ -96,7 +96,7 @@ class DecisionTreeClassifier:
             return Node(value=most_common_label)
 
         r_feats = np.random.choice(self.n_features, self.n_features, replace=False)
-        best_feat, best_thr = self._best_split(X, y, r_feats)
+        best_feat, best_thr = self._best_split(X, y, r_feats, method)
 
         left_idx, right_idx = self._create_split(X[:, best_feat], best_thr)
         left_child = self._build_tree(X[left_idx, :], y[left_idx], depth + 1)
