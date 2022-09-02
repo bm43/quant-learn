@@ -19,6 +19,7 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 from dataclasses import dataclass, field
 from scipy.stats import norm
+from sklearn.covariance import log_likelihood
 
 @dataclass
 class MarkovSwitch:
@@ -49,6 +50,53 @@ class MarkovSwitch:
     likelihood = map(lambda x, y: norm(loc=x, scale=y).pdf(obs), mean, std)
     return np.column_stack(tuple(likelihood))
 
+  def _loglikelihood(self, obs: np.ndarray[np.float64],\
+    theta: np.ndarray[np.float64], store: bool=False) -> float:
+    p: np.ndarray[np.float64] = theta[:2]
+    means = theta[2:4]
+    std = np.array([theta[-1], theta[-1]])
+
+    # 1. initialize values
+    n = obs.shape[0] # number of observations
+    hfilter = np.zeros((n, self.n_regime))
+    eta = np.zeros((n, self.n_regime))
+    pred_p = np.zeros((n, self.n_regime))
+
+    # joint p density Pr(yt|St, Ft-1) * Pr(st|Ft-1)
+    jointdist = np.zeros(n)
+
+    p_00, p_11 = self._sigmoid(p)
+    self._transition_matrix(p_00, p_11)
+
+    # initial input to filter
+    hfilter[0] = np.array([0.5, 0.5])
+    pred_p[1] = self.trans_matrix.T @ hfilter[0]
+
+    eta = self._normpdf(obs, means, std)
+
+    # 2. filter for t = 1, ... , T-1
+    for t in range(1, n-1):
+      exp = eta[t] * pred_p[t]
+      loglike = exp.sum()
+
+      jointdist[t] = loglike
+      hfilter[t] = exp /loglike
+
+      # predict
+      pred_p[t + 1] = self.trans_matrix.T @ hfilter[t]
+    
+    # hfilter and jointdist at time T
+    exp = eta[-1] * pred_p[-1]
+    loglike = exp.sum()
+    jointdist[-1] = loglike
+    hfilter[-1] = exp/loglike
+    
+    if store:
+      self.filter_p = hfilter
+      self.pred_p = pred_p
+    
+    return np.log(jointdist[1:]).mean()
+
   def _transition_matrix(self, p_00: float, p_11: float) -> None:
     """
     this function constructs tr matrix for binary process
@@ -63,8 +111,9 @@ class MarkovSwitch:
     self.trans_matrix[1,1] = p_11
 
   def _hamilton_filter(self, obs: np.ndarray, theta: np.ndarray):
+    
     p = theta[:2] # first two
-    means = [2:4] # third and fourth
+    means = theta[2:4] # third and fourth
     std = np.array([theta[-1], theta[-1]])
 
     # I. init
@@ -97,6 +146,8 @@ class MarkovSwitch:
     return [H_filter, pred_p]
   
   def _kims_algo(self, filter_p: np.ndarray[np.float64], pred_p: np.ndarray[np.float64], P: np.ndarray[np.float64]) -> np.ndarray[np.float64]:
+    # get Pr(St=i|FT)
+    
     n = filter_p.shape[0] # how many data points
     smoothed_p = np.zeros_like(filter_p)
 
@@ -171,10 +222,36 @@ class MarkovSwitch:
     self.em_params.index.name = "em_iters"
     self.em_params[["p11", "p22"]] = self.em_params[["p11", "p22"]].apply(self._sigmoid)
     return self
-    
+  
+  def _objective_function(self, guess: np.ndarray[np.float64], \
+    obs: np.ndarray[np.float64], store: bool = False) -> float:
+    # obs = observed response variable
+    f = self._loglikelihood(obs, theta=guess, store=store)
+    return -f
+
   def fit(self, obs: np.ndarray, iter: int = 10):
     self._em(obs, iter = iter)
-    param_guess = self.em_params
+    param_guess = self.em_params.tail(1).values.ravel()
+
+    # first two param (=transition probs) change
+    param_guess[:2] = self._inv_sigmoid(param_guess[:2])
+
+    # fit
+    self.theta = minimize(
+      self._objective_function,
+      param_guess,
+      method="SLSQP",
+      options={"disp": True},
+      args=(obs, True)
+    )["x"]
+
+    # get smooth p
+    self.smoothed_p = self._kims_algo(
+      self.filter_p, self.pred_p, self.trans_matrix
+    )
+
+    self.theta[:2] = self._sigmoid(self.theta[:2])
+
     return self
 
   def _make_titles(self) -> list:
