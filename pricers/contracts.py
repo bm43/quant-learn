@@ -92,23 +92,13 @@ class MonthlySumCapPrice:
         self.delta = self.T/n # tk - tk-1 = delta
         self.sig = self.S.std
 
-
-
-    def _risk_neutral_prob(self, r: float, eta: float, sig: float, delta: float) -> norm:
+    def _risk_neutral_prob_dist(self, r: float, eta: float, sig: float, delta: float) -> norm:
         # cumulative normal dist with
         # mean = (r - eta - ((sig**2)/2) * delta)
         # std = (sig**2) * delta
+
+        # somethings' weird here... you should return a number
         return norm(loc = r - eta - ((sig**2)/2) * delta, scale = (sig**2) * delta)
 
-
-def _risk_neutral_prob(R: float): # describes distribution of C_k
-    return
-
-def phi_C(g: float, c: float): # characteristic function of C_k
-    return
-
-def LocallyCappedContractPricer(c: float, g: float, S: float,\
-    K: float, r: float, sigma: float, T: float):
-    
-    return
+    def expected_Ck(self, c, g, n, m_xi, sig, delta):
 
