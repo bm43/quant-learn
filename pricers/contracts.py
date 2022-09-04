@@ -15,10 +15,14 @@ explanations on this product with some math:
 https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1101796
 """
 
+from cgi import print_environ
 from attr import dataclass
 import numpy as np
+from numpy.random import normal
 from scipy.stats import norm
-from typing import field, Union
+
+from scipy.integrate import quad
+from math import pi
 
 """
 notes:
@@ -74,14 +78,16 @@ the monthly sum cap's price.
 @dataclass
 class MonthlySumCapPrice:
     
+    # details of product
     S: np.array # underlying asset prices from t_0 to T
+    r: float = 0.03 # risk free rate
+    g: float = 0.03 # guaranteed rate at T
+    T: float = 3.0 # maturity in years
+    delta: float = 0.01 # time interval btwn price ticks
+    sig: float = 0.0 # volatility of S
+    eta: float = 0.02 # constant yield of dividend of designated reference equity index
 
-    r: float = field(init=False, default=0.03) # risk free rate
-    g: float = field(init=False, default=0.03) # guaranteed rate at T
-    T: float = field(init=False, default=3.0) # maturity in years
-    delta: float = field(init=False) # time interval btwn price ticks
-    sig: float = field(init=False) # volatility of S
-    eta: float = field(init=False) # constant yield of dividend of designated reference equity index
+    K: float = 300 # initial investment net of fees and commission
 
     def __post_init__(self) -> None:
         """note: assuming clean data
@@ -92,23 +98,45 @@ class MonthlySumCapPrice:
         self.delta = self.T/n # tk - tk-1 = delta
         self.sig = self.S.std
 
-
-
-    def _risk_neutral_prob(self, r: float, eta: float, sig: float, delta: float) -> norm:
+    def _risk_neutral_prob(self, x: float, m_xi: float, sig: float, delta: float) -> float:
         # cumulative normal dist with
         # mean = (r - eta - ((sig**2)/2) * delta)
         # std = (sig**2) * delta
-        return norm(loc = r - eta - ((sig**2)/2) * delta, scale = (sig**2) * delta)
+        stddev = (sig**2) * delta
+        return norm(m_xi, stddev).cdf(x)
 
+    def _expected_Ck(self, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
 
-def _risk_neutral_prob(R: float): # describes distribution of C_k
-    return
+        def integrand(y, g, n, delta, sig, m_xi):
+            return (y - 1 - g/n) * ((2*pi)**0.5 * delta * sig*y)**(-1) * np.exp((-(np.log(y) - m_xi)**2)/(2*sig*sig*delta))
 
-def phi_C(g: float, c: float): # characteristic function of C_k
-    return
+        m_xi = r - eta - ((sig**2)/2) * delta
 
-def LocallyCappedContractPricer(c: float, g: float, S: float,\
-    K: float, r: float, sigma: float, T: float):
+        integral = quad(integrand, 0, c+1, args=(g, n, delta, sig, m_xi))
+        x = (m_xi - np.log(1+c))/(sig*delta**0.5)
+
+        return (c-g/n) * self._risk_neutral_prob(x, m_xi, sig, delta) + integral    
+
+    def _characteristic_Ck(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
+        m_xi = r - eta - ((sig**2)/2) * delta
+
+        first_term = np.exp(-1j*t*(1+g/n))
+
+        def integrand(x, t, m_xi, sigma, delta):
+            input = (m_xi - np.log(x)) / (sigma * delta)
+            return np.exp(1j*t*x) * self._risk_neutral_prob(input, m_xi, sig, delta)
+
+        integral = quad(integrand, 0, 1+c, args=(t, m_xi, sig, delta))[0]
+
+        second_term = 1 + 1j*t * integral
+        phi_Ct = first_term * second_term
+        return phi_Ct.real
+
+    def _expected_absolute_price_sum(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
+        # Theta_L := abs(sum(Lk))
+        def integrand(t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
+            return 1 - self._characteristic_Ck(t, c, g, n, r, eta, sig, delta)/(t*t)
+        return 2/pi * quad(integrand, 0, 1000, args=(c, g, n, r, eta, sig, delta))
     
-    return
-
+    def _time_zero_price(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
+        return
