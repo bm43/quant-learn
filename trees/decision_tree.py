@@ -109,9 +109,13 @@ class DecisionTreeClassifier:
         return self
 
     def _traverse_tree(self, x, node):
-        return self
+        if node.is_leaf():
+            return node.value
+
+        if x[node.feature] <= node.threshold:
+            return self._traverse_tree(x, node.left)
+        return self._traverse_tree(x, node.right)
 
     def predict(self, X: pd.DataFrame) -> np.array:
-        preds = np.array([])
-
-        return
+        preds = [self._traverse_tree(x, self.root) for x in X]
+        return np.array(preds)
