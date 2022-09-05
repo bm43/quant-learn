@@ -98,7 +98,6 @@ class MonthlySumCapPrice:
         self.delta = self.T/n # tk - tk-1 = delta
         self.sig = self.S.std
 
-<<<<<<< HEAD
     def _risk_neutral_prob(self, x: float, m_xi: float, sig: float, delta: float) -> float:
         # cumulative normal dist with
         # mean = (r - eta - ((sig**2)/2) * delta)
@@ -116,7 +115,7 @@ class MonthlySumCapPrice:
         integral = quad(integrand, 0, c+1, args=(g, n, delta, sig, m_xi))
         x = (m_xi - np.log(1+c))/(sig*delta**0.5)
 
-        return (c-g/n) * self._risk_neutral_prob(x, m_xi, sig, delta) + integral    
+        return (c-g/n) * self._risk_neutral_prob(x, m_xi, sig, delta) + integral
 
     def _characteristic_Ck(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
         m_xi = r - eta - ((sig**2)/2) * delta
@@ -141,15 +140,3 @@ class MonthlySumCapPrice:
     
     def _time_zero_price(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
         return
-=======
-    def _risk_neutral_prob_dist(self, r: float, eta: float, sig: float, delta: float) -> norm:
-        # cumulative normal dist with
-        # mean = (r - eta - ((sig**2)/2) * delta)
-        # std = (sig**2) * delta
-
-        # somethings' weird here... you should return a number
-        return norm(loc = r - eta - ((sig**2)/2) * delta, scale = (sig**2) * delta)
-
-    def expected_Ck(self, c, g, n, m_xi, sig, delta):
-
->>>>>>> 050ac553888c006b454994cfdf718ded1ca0d21d
