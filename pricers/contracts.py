@@ -15,14 +15,13 @@ explanations on this product with some math:
 https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1101796
 """
 
-from cgi import print_environ
 from attr import dataclass
 import numpy as np
-from numpy.random import normal
 from scipy.stats import norm
-
-from scipy.integrate import quad
+from numpy.random import normal
+from typing import field, Union
 from math import pi
+from scipy.integrate import quad
 
 """
 notes:
@@ -98,7 +97,6 @@ class MonthlySumCapPrice:
         self.delta = self.T/n # tk - tk-1 = delta
         self.sig = self.S.std
 
-<<<<<<< HEAD
     def _risk_neutral_prob(self, x: float, m_xi: float, sig: float, delta: float) -> float:
         # cumulative normal dist with
         # mean = (r - eta - ((sig**2)/2) * delta)
@@ -133,23 +131,20 @@ class MonthlySumCapPrice:
         phi_Ct = first_term * second_term
         return phi_Ct.real
 
-    def _expected_absolute_price_sum(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
+    def _expected_absolute_price_sum_C(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
         # Theta_L := abs(sum(Lk))
         def integrand(t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
             return 1 - self._characteristic_Ck(t, c, g, n, r, eta, sig, delta)/(t*t)
         return 2/pi * quad(integrand, 0, 1000, args=(c, g, n, r, eta, sig, delta))
     
-    def _time_zero_price(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
+    def _time_zero_price_contract(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
         return
-=======
-    def _risk_neutral_prob_dist(self, r: float, eta: float, sig: float, delta: float) -> norm:
-        # cumulative normal dist with
-        # mean = (r - eta - ((sig**2)/2) * delta)
-        # std = (sig**2) * delta
 
-        # somethings' weird here... you should return a number
-        return norm(loc = r - eta - ((sig**2)/2) * delta, scale = (sig**2) * delta)
-
-    def expected_Ck(self, c, g, n, m_xi, sig, delta):
-
->>>>>>> 050ac553888c006b454994cfdf718ded1ca0d21d
+    def _expected_Zk(self):
+        return
+    
+    def _characteristic_Zk(self):
+        return
+    
+    def _expected_Absolute_price_sum_Z(self):
+        return
