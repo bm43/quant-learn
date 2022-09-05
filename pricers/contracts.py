@@ -15,14 +15,13 @@ explanations on this product with some math:
 https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1101796
 """
 
-from cgi import print_environ
 from attr import dataclass
 import numpy as np
-from numpy.random import normal
 from scipy.stats import norm
-
-from scipy.integrate import quad
+from numpy.random import normal
+from typing import field, Union
 from math import pi
+from scipy.integrate import quad
 
 """
 notes:
@@ -132,11 +131,20 @@ class MonthlySumCapPrice:
         phi_Ct = first_term * second_term
         return phi_Ct.real
 
-    def _expected_absolute_price_sum(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
+    def _expected_absolute_price_sum_C(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
         # Theta_L := abs(sum(Lk))
         def integrand(t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
             return 1 - self._characteristic_Ck(t, c, g, n, r, eta, sig, delta)/(t*t)
         return 2/pi * quad(integrand, 0, 1000, args=(c, g, n, r, eta, sig, delta))
     
-    def _time_zero_price(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
+    def _time_zero_price_contract(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float):
+        return
+
+    def _expected_Zk(self):
+        return
+    
+    def _characteristic_Zk(self):
+        return
+    
+    def _expected_Absolute_price_sum_Z(self):
         return

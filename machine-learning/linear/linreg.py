@@ -6,7 +6,6 @@
 
 #from __future__ import annotations
 
-from lib2to3.pgen2.token import OP
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Optional
