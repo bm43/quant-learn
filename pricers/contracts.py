@@ -114,7 +114,7 @@ class MonthlySumCapPrice:
         integral = quad(integrand, 0, c+1, args=(g, n, delta, sig, m_xi))
         x = (m_xi - np.log(1+c))/(sig*delta**0.5)
 
-        return (c-g/n) * self._risk_neutral_prob(x, m_xi, sig, delta) + integral    
+        return (c-g/n) * self._risk_neutral_prob(x, m_xi, sig, delta) + integral
 
     def _characteristic_Ck(self, t, c: float, g: float, n: float, r: float, eta: float, sig: float, delta: float) -> float:
         m_xi = r - eta - ((sig**2)/2) * delta
