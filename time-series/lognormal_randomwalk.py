@@ -20,14 +20,16 @@ class lognormalSimulate:
         plt.show()
         return
     
+    # https://math.stackexchange.com/questions/4226299/what-kind-of-random-walk-can-lead-to-a-lognormal-distribution-in-the-limit
     def _make_random_walk(self, length: int) -> np.array:
         
-        T = np.zeros((1,length))
+        T = np.zeros((length))
         T[0] = self.S_0
         U = np.random.uniform(0, 1, length)
         Z = np.random.normal(0, 1, length)
+        
         for n in range(1,length):
-            if U[n] > self._lognormal_density(T[n-1]+Z[n], self.mu, self.sig) / self._lognormal_density(T[n-1], self.mu, self.sig):
+            if U[n] > (self._lognormal_density(T[n-1]+Z[n], self.mu, self.sig) / self._lognormal_density(T[n-1], self.mu, self.sig)):
                 T[n] = T[n-1]
             else:
                 T[n] = T[n-1] + Z[n]
@@ -40,6 +42,6 @@ class lognormalSimulate:
         plt.show()
         return
 
-lns = lognormalSimulate(100.0, 0.1, 2.3, 0.9)
+lns = lognormalSimulate(100.0, 0.1, 2.3, 0.7)
 #lns.plot_lognormal()
-lns.plot_lognormal_randomwalk(100)
+lns.plot_lognormal_randomwalk(1000)
