@@ -4,7 +4,7 @@ import numpy as np
 import math
 
 @dataclass
-class lognormalSimulate:
+class LogNormal:
     S_0 : float
     r : float
     mu : float
@@ -42,6 +42,6 @@ class lognormalSimulate:
         plt.show()
         return
 
-lns = lognormalSimulate(100.0, 0.1, 2.3, 0.7)
+lns = LogNormal(100.0, 0.1, 2.3, 0.7)
 #lns.plot_lognormal()
 lns.plot_lognormal_randomwalk(1000)
