@@ -10,31 +10,21 @@ from typing import Optional
 class ZeroRateCurve:
     """Builds zero-rate curve using ZCBs with continuous discounting"""
 
-    def __init__(
-        self,
-        maturities: np.ndarray, # n_samples x 1
-        zcb: np.ndarray = None, # n_samples x 1
-        zero_rates: np.ndarray = None,
-    ):
-        """Default Constructor used to initialize zero rate curve
-        maturities=  maturity corresponding to each zero coupon bond in the zcb array
+    maturities : np.ndarray
+    zero_rates : np.ndarray = None
+    zcb_prices : np.ndarray = None
 
-        zcb : zero coupon bond prices traded for various maturities
-        """
-        self.maturities = maturities
-        self.zero_rates = zero_rates
-        self.disc_factors = self.discount_factor(maturities, zero_rates)
+    def __post_init__(self):
+        self.disc_factors = self.discount_factor(self.maturities, self.zero_rates)
         self.zcb_prices = self.disc_factors * 100.0
 
     def discount_factor(self, t: float, rcont: float) -> float:
         """computes the discount factor corresponding to continuous rates
-        This is the maximum amount you give up today to receive
+        = maximum amount you give up today to receive
         $1 in t years
         
         t = maturity of zcb
         rcont = the continuous rate
-        
-        returns discount factor corresponding to continuous rate
         """
         return np.exp(-rcont * t)
 
