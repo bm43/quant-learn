@@ -26,14 +26,14 @@ class MarkovSwitch:
   
   trans_matrix: np.ndarray = field(init=False)
   n_regime: int = 2
-  filter_p: np.ndarray = field(init=False)
+  filtered_p: np.ndarray = field(init=False)
   pred_p: np.ndarray = field(init=False)
   smoothed_p: np.ndarray = field(init=False)
   em_params: pd.Series = field(init=False)
 
   def __post_init__(self) -> None:
     self.trans_matrix = np.zeros((self.n_regime, self.n_regime))
-    self.filter_p = np.array([])
+    self.filtered_p = np.array([])
     self.pred_p = np.array([])
     self.smoothed_p = np.array([])
     self.theta = np.array([])
@@ -92,7 +92,7 @@ class MarkovSwitch:
     hfilter[-1] = exp/loglike
     
     if store:
-      self.filter_p = hfilter
+      self.filtered_p = hfilter
       self.pred_p = pred_p
     
     return np.log(jointdist[1:]).mean()
@@ -145,42 +145,42 @@ class MarkovSwitch:
 
     return [H_filter, pred_p]
   
-  def _kims_algo(self, filter_p: np.ndarray[np.float64], pred_p: np.ndarray[np.float64], P: np.ndarray[np.float64]) -> np.ndarray[np.float64]:
+  def _kims_algo(self, filtered_p: np.ndarray[np.float64], pred_p: np.ndarray[np.float64], P: np.ndarray[np.float64]) -> np.ndarray[np.float64]:
     # get Pr(St=i|FT)
     
-    n = filter_p.shape[0] # how many data points
-    smoothed_p = np.zeros_like(filter_p)
+    n = filtered_p.shape[0] # how many data points
+    smoothed_p = np.zeros_like(filtered_p)
 
-    # set smoothed_p[T] = filter_p[T]
-    smoothed_p[-1] = filter_p[-1]
+    # set smoothed_p[T] = filtered_p[T]
+    smoothed_p[-1] = filtered_p[-1]
 
     # get smooth probas
     for t in range(n-1, 0, -1):
       a = P @ (smoothed_p[t] / pred_p[t])
-      smoothed_p[t-1] = filter_p[t-1] * a
+      smoothed_p[t-1] = filtered_p[t-1] * a
 
     return smoothed_p
 
-  def _qp(self, filter_p: np.ndarray, pred_p: np.ndarray, P: np.ndarray) -> np.ndarray:
+  def _qp(self, filtered_p: np.ndarray, pred_p: np.ndarray, P: np.ndarray) -> np.ndarray:
     # posterior joint proba computed w/ kim's smoothing algorithm
     # https://homepage.ntu.edu.tw/~ckuan/pdf/Lec-Markov_note.pdf
     # page 8
-    smoothed_p = self._kims_algo(filter_p, pred_p, P)
+    smoothed_p = self._kims_algo(filtered_p, pred_p, P)
     n = smoothed_p.shape[0]
     qp = np.zeros((n, 2** self.n_regime))
     # compute joint proba at t, t-1, ... 1
     for t in range(1, n):
       # (st-1 = 0, st = 0) and (st-1 = 0, st = 1)
-      qp[t, :2] = (P[0] * smoothed_p[t] * filter_p[t-1, 0] / pred_p[t])
+      qp[t, :2] = (P[0] * smoothed_p[t] * filtered_p[t-1, 0] / pred_p[t])
       # (st-1 = 1, st = 0) and (st-1 = 1, st = 1)
-      qp[t, 2:] = (P[1] * smoothed_p[t] * filter_p[t-1, 1] / pred_p[t])
+      qp[t, 2:] = (P[1] * smoothed_p[t] * filtered_p[t-1, 1] / pred_p[t])
     return np.concatenate((smoothed_p, qp), axis=1)
 
   def _e_step(self, obs: np.ndarray, theta: np.ndarray) -> np.ndarray:
     # obs for observations
     # theta = initial guess, input to em algo
     H_filter, pred_p = self._hamilton_filter(obs, theta)
-    return self._qp(filter_p = H_filter, pred_p = pred_p, P=self.trans_matrix)    
+    return self._qp(filtered_p = H_filter, pred_p = pred_p, P=self.trans_matrix)    
 
   def _m_step(self, obs: np.ndarray, qp: np.ndarray) -> Tuple[np.ndarray, np.ndarray, List[float]]:
     # qp is posterior probas
@@ -247,7 +247,7 @@ class MarkovSwitch:
 
     # get smooth p
     self.smoothed_p = self._kims_algo(
-      self.filter_p, self.pred_p, self.trans_matrix
+      self.filtered_p, self.pred_p, self.trans_matrix
     )
 
     self.theta[:2] = self._sigmoid(self.theta[:2])
