@@ -11,7 +11,7 @@ https://econweb.ucsd.edu/~jhamilto/palgrav1.pdf
 """
 
 import random
-from typing import Tuple
+from typing import Tuple, List
 import numpy as np
 from itertools import chain #이런건 어디서 배우는거냐 대체 
 import pandas as pd
@@ -117,8 +117,8 @@ class MarkovSwitch:
     std = np.array([theta[-1], theta[-1]])
 
     # I. init
-    H_filter = np.zeros((n, self.n_regime))
     n = obs.shape[0]
+    H_filter = np.zeros((n, self.n_regime))
     pred_p = np.zeros((n,self.n_regime))
 
     # Transition
@@ -171,7 +171,7 @@ class MarkovSwitch:
     # compute joint proba at t, t-1, ... 1
     for t in range(1, n):
       # (st-1 = 0, st = 0) and (st-1 = 0, st = 1)
-      qp[p, :2] = (P[0] * smoothed_p[t] * filter_p[t-1, 0] / pred_p[t])
+      qp[t, :2] = (P[0] * smoothed_p[t] * filter_p[t-1, 0] / pred_p[t])
       # (st-1 = 1, st = 0) and (st-1 = 1, st = 1)
       qp[t, 2:] = (P[1] * smoothed_p[t] * filter_p[t-1, 1] / pred_p[t])
     return np.concatenate((smoothed_p, qp), axis=1)
@@ -211,13 +211,13 @@ class MarkovSwitch:
       theta[i] = np.concatenate((p_k, mu_k, sig))
 
       # E step:
-      qp = self._estep(obs, theta[i])
+      qp = self._e_step(obs, theta[i])
 
       # M step:
-      p_kk, mu_k, sig = self._m_step(self, obs, qp)
+      p_kk, mu_k, sig = self._m_step(obs, qp)
       p_k = self._inv_sigmoid(p_kk)
     
-    cols = self._make_titles(self)
+    cols = self._make_titles()
     self.em_params = pd.DataFrame(theta, columns=cols)
     self.em_params.index.name = "em_iters"
     self.em_params[["p11", "p22"]] = self.em_params[["p11", "p22"]].apply(self._sigmoid)
