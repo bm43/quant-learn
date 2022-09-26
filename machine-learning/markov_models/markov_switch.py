@@ -19,7 +19,6 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 from dataclasses import dataclass, field
 from scipy.stats import norm
-from sklearn.covariance import log_likelihood
 
 @dataclass
 class MarkovSwitch:
