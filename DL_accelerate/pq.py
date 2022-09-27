@@ -1,4 +1,4 @@
-# implements product quantization
+# implements product quantization that reduces vector memory usage
 # https://lear.inrialpes.fr/pubs/2011/JDS11/jegou_searching_with_quantization.pdf
 # author: Hyung Jip Lee
 # 2022-09-27
@@ -45,7 +45,7 @@ class ProductQuantization:
         N, D = x.shape
         assert self.Ks < N
         assert D % self.M == 0
-        
+
         self.Dstar = int(D/self.M)
 
         np.random.seed(seed)
