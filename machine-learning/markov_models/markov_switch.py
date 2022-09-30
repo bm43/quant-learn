@@ -13,7 +13,7 @@ https://econweb.ucsd.edu/~jhamilto/palgrav1.pdf
 import random
 from typing import Tuple, List
 import numpy as np
-from itertools import chain #이런건 어디서 배우는거냐 대체 
+from itertools import chain
 import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import norm
