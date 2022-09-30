@@ -23,11 +23,23 @@ class HiddenMarkovModel():
         return
     
     def fit(self, obs: List[str], iter: int):
-        
-        return self
+        for i in range(iter):
+            old_transmission = self.transmission_prob.copy()
+            old_emission = self.emission_prob.copy()
+            print("Iteration: {}".format(i + 1))
+            self._expectation()
+            self._maximize()
+        return
 
     def predict(self):
         return self
+    
+    def _expectation(self) -> None:
+        
+        return
+
+    def _maximize(self) -> None:
+        return
 
 obs = ['a','a','a','a','a','a','a']
 hmm = HiddenMarkovModel(np.zeros((102,102)), np.zeros((90,100)))
