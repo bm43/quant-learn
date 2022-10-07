@@ -1,6 +1,12 @@
 from dataclasses import dataclass, field
 from typing import List
 import numpy as np
+# implemented using:
+# https://web.stanford.edu/~jurafsky/slp3/A.pdf
+
+# 1.
+# 2.
+# 3. forward-backward algo
 
 @dataclass
 class HiddenMarkovModel():
@@ -30,22 +36,34 @@ class HiddenMarkovModel():
             old_transmission = self.transmission_prob.copy()
             old_emission = self.emission_prob.copy()
             print("Iteration: {}".format(i + 1))
-            self._expectation()
-            self._maximize()
+            # perform em
+            self._e_step()
+            self._m_step()
         return
-
-    def predict(self):
-        return self
     
-    def _expectation(self) -> None:
-        self.forward = self._forward_recurse(len(self.obs))
-        self.backward = self.backward_recurse(0)
+    def _e_step(self) -> None:
+        self._forward = self._forward_recurse(len(self.obs))
+        self._backward = self.backward_recurse(0)
         self._get_gamma()
+        self._get_psi()
         return
 
-    def forward_recurse(self):
+    def _get_gamma(self) -> None:
+        self.gamma = np.zeros((2,len(self.obs)))
+        
+        # first column:
+        self.gamma[:, 0] = self._forward[0, :] * self._backward[0, :] \
+            / self._forward[0, :] * self._backward[0, :] \
+                + self._forward[1, :] * self._backward[1, :]
+        
+        # second column:
+        self.gamma[:, 1] = self._forward[1, :] * self._backward[1, :] \
+            / self._forward[0, :] * self._backward[0, :] \
+                + self._forward[1, :] * self._backward[1, :]
+
+    def _get_psi(self) -> None:
         return
 
-    def _maximize(self) -> None:
+    def _m_step(self) -> None:
         
         return
