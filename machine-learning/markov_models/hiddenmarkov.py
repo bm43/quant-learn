@@ -17,6 +17,9 @@ class HiddenMarkovModel():
     psi: np.ndarray
     gamma: np.ndarray
 
+    forward: np.ndarray
+    backward: np.ndarray
+
     def __post_init__(self) -> None:
         self.psi = np.zeros((self.n, self.n, len(self.obs)-1))
         self.gamma = np.zeros((len(self.obs), self.n))
@@ -35,13 +38,14 @@ class HiddenMarkovModel():
         return self
     
     def _expectation(self) -> None:
-        
+        self.forward = self._forward_recurse(len(self.obs))
+        self.backward = self.backward_recurse(0)
+        self._get_gamma()
+        return
+
+    def forward_recurse(self):
         return
 
     def _maximize(self) -> None:
+        
         return
-
-obs = ['a','a','a','a','a','a','a']
-hmm = HiddenMarkovModel(np.zeros((102,102)), np.zeros((90,100)))
-hmm.fit(obs,10)
-print(hmm.n)
