@@ -42,11 +42,16 @@ class HiddenMarkovModel():
         return
     
     def _e_step(self) -> None:
-        self._forward = self._forward_recurse(len(self.obs))
-        self._backward = self.backward_recurse(0)
+        self._forward = self._forward_recursion(len(self.obs))
+        self._backward = self.backward_recursion(0)
         self._get_gamma()
         self._get_psi()
         return
+
+    def _forward_recursion(self, idx):
+        return
+
+    
 
     def _get_gamma(self) -> None:
         self.gamma = np.zeros((2,len(self.obs)))
@@ -64,6 +69,28 @@ class HiddenMarkovModel():
     def _get_psi(self) -> None:
         return
 
-    def _m_step(self) -> None:
-        
+    def _compute_psi(self, t, i, j):
         return
+
+    def _m_step(self) -> None:
+        return
+
+    def _get_state_probas(self):
+        return
+
+    def _estimate_transmission(self, i, j):
+        return
+    
+    def _estimate_emission(self, j ,obs):
+        return
+
+    def _backward_recursion(self, idx) -> np.ndarray:
+        return self.backward
+
+    def _backward_init(self, state):
+        return self.transmission_prob[self.n + 1][state + 1]
+
+    def _backward_proba(self, idx, backward, state, last) -> np.float:
+        return
+
+    
