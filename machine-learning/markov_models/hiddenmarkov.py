@@ -51,7 +51,11 @@ class HiddenMarkovModel():
     def _forward_recursion(self, idx):
         return
 
-    
+    def _forward_init(self, obs, state):
+        return
+
+    def _forward_proba(self, idx, forward, state):
+        return
 
     def _get_gamma(self) -> None:
         self.gamma = np.zeros((2,len(self.obs)))
@@ -93,4 +97,5 @@ class HiddenMarkovModel():
     def _backward_proba(self, idx, backward, state, last) -> np.float:
         return
 
-    
+    def likelihood(self, new_obs) -> float:
+        return 0.0
