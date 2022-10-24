@@ -26,7 +26,9 @@ class HiddenMarkovModel():
         self.obs = np.array([[]])
 
         self.forward = np.array([])
+        self.forward_last = np.array([0,0])
         self.backward = np.array([])
+        self.forward_last = np.array([0,0])
         self.psi = np.zeros((self.n, self.n, len(self.obs)-1))
         self.gamma = np.zeros((len(self.obs), self.n))
 
@@ -80,11 +82,16 @@ class HiddenMarkovModel():
 
         return self.transition_prob[state+1][0] * bj_ot
 
-    def _forward_proba(self, idx, forward, state, last):
-        return
-
-    def _forward_last(self, state):
-        return
+    def _forward_proba(self, idx, forward, state, last=False):
+        # = a_t
+        # cf. p.6 A.12
+        p = np.zeros((self.n, 1))
+        for prevstate in range(self.n):
+            if not last:
+                # recurse
+                obs_idx = self.emission_ref[self.obs[idx]]
+                p[prevstate] = forward[prevstate][idx-1] * self.transition_prob[state+1][prevstate+1] * self.emission_prob[obs_idx][state]
+        return sum(p)
 
     def _get_gamma(self) -> None:
         self.gamma = np.zeros((2,len(self.obs)))
