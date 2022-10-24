@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from turtle import hideturtle
 from typing import List
 import numpy as np
 # implemented using:
@@ -12,25 +13,27 @@ import numpy as np
 class HiddenMarkovModel():
     # n = no. of hidden states
     # m = number of possible observation outcomes
+
+    # declare inputs to class
     transmission_prob: np.ndarray # (n+2) x (n+2) input
     emission_prob: np.ndarray # m x n
-    n: int
-    m: int
-
-    # observation labels:
-    obs: List[str]
-
-    psi: np.ndarray
-    gamma: np.ndarray
-
-    forward: np.ndarray
-    backward: np.ndarray
 
     def __post_init__(self) -> None:
+        self.n = self.emission_prob.shape[1]
+        self.m = self.emission_prob.shape[0]
+
+        # observation labels:
+        self.obs = np.array([[]])
+
+        self.forward = np.array([])
+        self.backward = np.array([])
         self.psi = np.zeros((self.n, self.n, len(self.obs)-1))
         self.gamma = np.zeros((len(self.obs), self.n))
         return
     
+    def assume_obs(self):
+        return
+
     def fit(self, obs: List[str], iter: int):
         for i in range(iter):
             old_transmission = self.transmission_prob.copy()
@@ -49,7 +52,10 @@ class HiddenMarkovModel():
         return
 
     def _forward_recursion(self, idx):
-        return
+        if idx == 0:
+            #fwd = [[0.0] * (len(self.obs)) for i in range(self.n)]
+            fwd = np.zeros((self.n, len(self.obs)))
+        return fwd
 
     def _forward_init(self, obs, state):
         return
@@ -94,8 +100,14 @@ class HiddenMarkovModel():
     def _backward_init(self, state):
         return self.transmission_prob[self.n + 1][state + 1]
 
-    def _backward_proba(self, idx, backward, state, last) -> np.float:
-        return
+    def _backward_proba(self, idx, backward, state, last) -> float:
+        return 0.0
 
     def likelihood(self, new_obs) -> float:
         return 0.0
+
+if __name__ == "__main__":
+    emission = np.array([[0.7, 0], [0.2, 0.3], [0.1, 0.7]])
+    transmission = np.array([ [0, 0, 0, 0], [0.5, 0.8, 0.2, 0], [0.5, 0.1, 0.7, 0], [0, 0.1, 0.1, 0]])
+    model = HiddenMarkovModel(transmission, emission)
+    print(model._forward_recursion(0))
