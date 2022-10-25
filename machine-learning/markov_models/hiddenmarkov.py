@@ -106,10 +106,20 @@ class HiddenMarkovModel():
             / self._forward[0, :] * self._backward[0, :] \
                 + self._forward[1, :] * self._backward[1, :]
 
-    def _get_psi(self) -> None:
-        return
+    def _get_psi(self):
+        # psi is N N x T matrices.
+
+        """
+        for i in range(self.n):
+            for j in range(self.n):
+                for t in range(1, len(self.obs)):
+                    self.psi[i][j][t-1] = self._compute_psi(i, j, t)
+        """
+        
+        return np.array(list(map(self._compute_psi, self.psi)))
 
     def _compute_psi(self, t, i, j):
+
         return
 
     def _m_step(self) -> None:
@@ -121,7 +131,7 @@ class HiddenMarkovModel():
     def _estimate_transition(self, i, j):
         return
     
-    def _estimate_emission(self, j ,obs):
+    def _estimate_emission(self, j, obs):
         return
 
     def _backward_recursion(self, idx) -> np.ndarray:
