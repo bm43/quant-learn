@@ -135,21 +135,32 @@ class HiddenMarkovModel():
         return (alpha_i_tminus1 * a_i_j * beta_t_j * b_j) / d
 
     def _m_step(self) -> None:
-        
+        self._get_state_probas()
+        for s in range(self.n):
+            self.transition_prob[s+1][0] = self.gamma[0][s]
+            self.transition_prob[-1][s+1] = self.gamme[-1][s] / self.state_probas[s]
+            for s2 in range(self.n):
+                self.transition_prob[s2 + 1][s+1] = self._estimate_transition(s, s2)
+            for o in range(self.m):
+                self.emission_prob[o][s] = self._estimate_emission(s, o)
         return
 
-    def _get_state_probas(self):
+    def _get_state_probas(self) -> dict:
         # proba of a state to occur
         self.state_probas = np.zeros((1, self.n))
         total_probas = list(np.sum(self.gamma, axis=0)) # column wise sum
         self.state_proba_dict = dict(zip(self.emission_ref.keys(), total_probas))
         return self.state_proba_dict
 
-    def _estimate_transition(self, i, j):
+    def _estimate_transition(self, i, j) -> float:
         return sum(self.psi[i][j])
     
     def _estimate_emission(self, j, obs):
-        return
+        obs = self.obs[obs]
+        ts = [i for i in range(len(self.obs)) if self.obs[i] == obs]
+        for i in range(len(ts)):
+            ts[i] = self.gamma[ts[i]][j]
+        return sum(ts) / self.state_probas[j]
 
     def _backward_recursion(self, idx) -> np.ndarray:
         # init at T
