@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from gettext import bind_textdomain_codeset
 from turtle import hideturtle
 from typing import List
 import numpy as np
@@ -28,7 +29,7 @@ class HiddenMarkovModel():
         self.forward = np.array([])
         self.forward_last = np.array([0,0])
         self.backward = np.array([])
-        self.forward_last = np.array([0,0])
+        self.backward_last = np.array([0,0])
         self.psi = np.zeros((self.n, self.n, len(self.obs)-1))
         self.gamma = np.zeros((len(self.obs), self.n))
 
@@ -108,28 +109,34 @@ class HiddenMarkovModel():
 
     def _get_psi(self):
         # psi is N N x T matrices.
-
-        """
         for i in range(self.n):
             for j in range(self.n):
                 for t in range(1, len(self.obs)):
                     self.psi[i][j][t-1] = self._compute_psi(i, j, t)
-        """
         
-        return np.array(list(map(self._compute_psi, self.psi)))
 
     def _compute_psi(self, t, i, j):
-
-        return
+        alpha_i_tminus1 = self.forward[i][t-1]
+        a_i_j = self.transition_prob[j+1][i+1]
+        beta_t_j = self.backward[j][t]
+        o_t = self.obs[t]
+        b_j = self.emission_prob[self.emission_ref[o_t]][j]
+        d = float(self.forward[0][i] * self.backward[0][i] + \
+            self.forward[1][i] * self.backward[1][i])
+        return (alpha_i_tminus1 * a_i_j * beta_t_j * b_j) / d
 
     def _m_step(self) -> None:
+        
         return
 
     def _get_state_probas(self):
+        # proba of a state to occur
+        self.state_probas = np.zeros((1, self.n))
+
         return
 
     def _estimate_transition(self, i, j):
-        return
+        return sum(self.psi[i][j])
     
     def _estimate_emission(self, j, obs):
         return
