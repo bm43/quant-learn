@@ -24,22 +24,27 @@ class HiddenMarkovModel():
         self.m = self.emission_prob.shape[0]
 
         # observation labels:
-        self.obs = np.array([[]])
+        self.obs = None
 
-        self.forward = np.array([])
         self.forward_last = np.array([0,0])
-        self.backward = np.array([])
         self.backward_last = np.array([0,0])
-        self.psi = np.zeros((self.n, self.n, len(self.obs)-1))
-        self.gamma = np.zeros((len(self.obs), self.n))
 
-        self.emission_ref = {}
+        self.state_proba_dict = {}
+
         return
     
-    def assume_obs(self):
+    def _set_emission_ref(self):
+        T = len(self.obs)
+        keys = np.unique(self.obs)
+        vals = [i for i in range(T)]
+        self.emission_ref = dict(zip(keys, vals))
         return
 
-    def fit(self, obs: List[str], iter: int):
+    def fit(self, obs: List[str], iter: int = 10):
+        self.obs = obs
+        self._set_emission_ref()
+        self.psi = np.zeros((self.n, self.n, len(self.obs)-1))
+        self.gamma = np.zeros((len(self.obs), self.n, 1))
         for i in range(iter):
             old_transition = self.transition_prob.copy()
             old_emission = self.emission_prob.copy()
@@ -51,8 +56,8 @@ class HiddenMarkovModel():
     
     def _e_step(self) -> None:
         self._forward = self._forward_recursion(len(self.obs))
-        self._backward = self.backward_recursion(0)
-        self._get_gamma()
+        self._backward = self._backward_recursion(0)
+        self._get_gamma() # gamma is no. of states -1 x no. of observations
         self._get_psi()
         return
 
@@ -60,7 +65,7 @@ class HiddenMarkovModel():
         # init at idx 0
         if idx == 0:
             #fwd = [[0.0] * (len(self.obs)) for i in range(self.n)]
-            fwd = np.zeros((self.n, len(self.obs)))
+            fwd = np.zeros((self.n, len(self.obs), 1))
             for state in range(self.n):
                 fwd[state][idx] = self._forward_init(self.obs[idx], state)
             return fwd
@@ -72,12 +77,11 @@ class HiddenMarkovModel():
                     fwd[state][idx] = self._forward_proba(idx, fwd, state)
                 else:
                     # end
-                    self._forward_last[state] = self._forward_proba(idx, fwd, state, last=True)
+                    self.forward_last[state] = self._forward_proba(idx, fwd, state, last=True)
             return fwd
 
     def _forward_init(self, obs, state):
         # function that gets initial forward proba
-        
         # state obs likelihood:
         bj_ot = self.emission_prob[self.emission_ref[obs]][state] # b_j(o_t)
 
@@ -95,8 +99,11 @@ class HiddenMarkovModel():
         return sum(p)
 
     def _get_gamma(self) -> None:
-        self.gamma = np.zeros((2,len(self.obs)))
-        
+        #print(self._forward[0,:].shape)
+        #print(self._backward[0,:].shape)
+        #print(self.gamma[:,0].shape)
+        #print(self.gamma.shape)
+
         # first column:
         self.gamma[:, 0] = self._forward[0, :] * self._backward[0, :] \
             / self._forward[0, :] * self._backward[0, :] \
@@ -107,22 +114,26 @@ class HiddenMarkovModel():
             / self._forward[0, :] * self._backward[0, :] \
                 + self._forward[1, :] * self._backward[1, :]
 
+        #print(self.gamma)
+        return
+
+
+    # could make better with matmul
     def _get_psi(self):
         # psi is N N x T matrices.
         for i in range(self.n):
             for j in range(self.n):
                 for t in range(1, len(self.obs)):
-                    self.psi[i][j][t-1] = self._compute_psi(i, j, t)
+                    self.psi[i][j][t-1] = self._compute_psi(t, i, j)
         
-
     def _compute_psi(self, t, i, j):
-        alpha_i_tminus1 = self.forward[i][t-1]
+        alpha_i_tminus1 = self._forward[i][t-1]
         a_i_j = self.transition_prob[j+1][i+1]
-        beta_t_j = self.backward[j][t]
+        beta_t_j = self._backward[j][t]
         o_t = self.obs[t]
         b_j = self.emission_prob[self.emission_ref[o_t]][j]
-        d = float(self.forward[0][i] * self.backward[0][i] + \
-            self.forward[1][i] * self.backward[1][i])
+        d = float(self._forward[0][i] * self._backward[0][i] + \
+            self._forward[1][i] * self._backward[1][i])
         return (alpha_i_tminus1 * a_i_j * beta_t_j * b_j) / d
 
     def _m_step(self) -> None:
@@ -132,8 +143,9 @@ class HiddenMarkovModel():
     def _get_state_probas(self):
         # proba of a state to occur
         self.state_probas = np.zeros((1, self.n))
-
-        return
+        total_probas = list(np.sum(self.gamma, axis=0)) # column wise sum
+        self.state_proba_dict = dict(zip(self.emission_ref.keys(), total_probas))
+        return self.state_proba_dict
 
     def _estimate_transition(self, i, j):
         return sum(self.psi[i][j])
@@ -142,19 +154,54 @@ class HiddenMarkovModel():
         return
 
     def _backward_recursion(self, idx) -> np.ndarray:
-        return self.backward
+        # init at T
+        if idx == (len(self.obs) - 1):
+            bwd = np.zeros((self.n, len(self.obs), 1))
+            for state in range(self.n):
+                bwd[state][idx] = self._backward_init(state)
+            return bwd
+        else:
+            bwd = self._backward_recursion(idx+1)
+            for state in range(self.n):
+                if idx >= 0:
+                    bwd[state][idx] = self._backward_proba(idx, bwd, state, False)
+                if idx == 0:
+                    self.backward_last[state] = self._backward_proba(idx, bwd, 0, last=True)
+            return bwd
 
     def _backward_init(self, state):
         return self.transition_prob[self.n + 1][state + 1]
 
     def _backward_proba(self, idx, backward, state, last) -> float:
-        return 0.0
+        # backward proba at t
+        p = np.zeros((self.n, 1))
+        for s in range(self.n):
+            observation = self.obs[idx + 1]
+            if not last:
+                a = self.transition_prob[s+1][state+1]
+            else:
+                a = self.transition_prob[s+1][0]
+            b = self.emission_prob[self.emission_ref[observation]][s]
+            Beta = backward[s][idx+1]
+            p[s] = a * b * Beta
+        return sum(p)
 
-    def likelihood(self, new_obs) -> float:
-        return 0.0
+    def likelihood(self, current_obs) -> float:
+        # proba of obseravtion seq given the current model params
+        current_model = HiddenMarkovModel(self.transition_prob, self.emission_prob)
+        current_model.obs = current_obs
+        current_model._set_emission_ref()
+        current_model._forward_recursion(len(current_obs))
+        return sum(current_model.forward_last)
 
+"""
 if __name__ == "__main__":
     emission = np.array([[0.7, 0], [0.2, 0.3], [0.1, 0.7]])
     transition = np.array([ [0, 0, 0, 0], [0.5, 0.8, 0.2, 0], [0.5, 0.1, 0.7, 0], [0, 0.1, 0.1, 0]])
+    obs = ['2','3','3','2','3','2','3','2','2','3','1','3','3','1','1',
+                    '1','2','1','1','1','3','1','2','1','1','1','2','3','3','2',
+                    '3','2','2']
     model = HiddenMarkovModel(transition, emission)
-    print(model._forward_recursion(0))
+    model.fit(obs)
+    #model._get_state_probas()
+"""
