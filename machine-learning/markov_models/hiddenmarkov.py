@@ -112,7 +112,6 @@ class HiddenMarkovModel():
             / self._forward[0, :] * self._backward[0, :] \
                 + self._forward[1, :] * self._backward[1, :]
 
-        #print(self.gamma)
         return
 
 
