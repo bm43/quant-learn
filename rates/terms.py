@@ -7,7 +7,11 @@ import numpy as np
 from typing import Optional
 
 @dataclass
-class ZeroRateCurve:
+class ZeroRateCurve: # useful when pricing bonds
+    """
+    most bonds give many cash flows at different points in time,
+    which means spot rates fit better than a single discount rate"""
+
     """Builds zero-rate curve using ZCBs with continuous discounting"""
 
     maturities : np.ndarray
@@ -76,3 +80,8 @@ class ZeroRateCurve:
         zero_rates = map(getattr(self, fit_type), knot_points)
 
         return pd.Series(zero_rates, index=knot_points)
+
+
+if __name__ == "__main__":
+    maturities = np.random.normal(50, 3, 100)
+    zrc = ZeroRateCurve(maturities)
