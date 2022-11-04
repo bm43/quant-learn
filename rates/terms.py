@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 from typing import Optional
+import matplotlib.pyplot as plt
+from statsmodels.tsa.regime_switching.tests.test_markov_regression import fedfunds
 
 @dataclass
 class ZeroRateCurve: # useful when pricing bonds
@@ -59,6 +61,7 @@ class ZeroRateCurve: # useful when pricing bonds
             print("Maturity out of bounds Error")
             return 0.0
 
+        print("new t")
         # find index where t1 < t < t2
         told = len(expiry[expiry < t]) - 1
         tnew = told + 1
@@ -69,7 +72,7 @@ class ZeroRateCurve: # useful when pricing bonds
     def cubic_interp(self, t: float) -> float:
         return 0.0
     
-    def build_curve(self, fit_type: Optional[str] = "linear_spot") -> pd.Series:
+    def build_curve(self, fit_type: Optional[str] = "linear") -> pd.Series:
         """builds a zero rate curve based on type of interpolation
         fit_type = linear_spot, constant_fwd, or cubic_spline
         Returns zero rate curve for all maturities
@@ -83,5 +86,10 @@ class ZeroRateCurve: # useful when pricing bonds
 
 
 if __name__ == "__main__":
-    maturities = np.random.normal(50, 3, 100)
-    zrc = ZeroRateCurve(maturities)
+    maturities = np.sqrt(np.arange(0,100))+np.random.normal(0, .2, 100)
+    #maturities = fedfunds
+    zero_rates = np.random.normal(0.05, 0.02, 100)
+    zrc = ZeroRateCurve(maturities, zero_rates)
+    curve = zrc.build_curve()
+    plt.plot(curve.values)
+    plt.show()
