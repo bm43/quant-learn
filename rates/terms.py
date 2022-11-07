@@ -17,7 +17,11 @@ class ZeroRateCurve: # useful when pricing bonds
     """Builds zero-rate curve using ZCBs with continuous discounting"""
 
     maturities : np.ndarray
+    # time it takes for a bond to mature
+
     zero_rates : np.ndarray = None
+    # risk free rate values (exponent function)
+
     zcb_prices : np.ndarray = None
 
     def __post_init__(self):
@@ -61,7 +65,6 @@ class ZeroRateCurve: # useful when pricing bonds
             print("Maturity out of bounds Error")
             return 0.0
 
-        print("new t")
         # find index where t1 < t < t2
         told = len(expiry[expiry < t]) - 1
         tnew = told + 1
@@ -81,15 +84,16 @@ class ZeroRateCurve: # useful when pricing bonds
         knot_points = np.arange(0, tmax, 0.01)
         fit_type += "_interp"
         zero_rates = map(getattr(self, fit_type), knot_points)
+        # getattr calls member function using its name in string
 
         return pd.Series(zero_rates, index=knot_points)
 
 
 if __name__ == "__main__":
-    maturities = np.sqrt(np.arange(0,100))+np.random.normal(0, .2, 100)
-    #maturities = fedfunds
-    zero_rates = np.random.normal(0.05, 0.02, 100)
-    zrc = ZeroRateCurve(maturities, zero_rates)
+    maturities = np.arange(0,10)
+    zrc = ZeroRateCurve(maturities)
     curve = zrc.build_curve()
-    plt.plot(curve.values)
+    plt.subplot(131),plt.plot(curve.values),plt.title('Yield Curve')
+    plt.subplot(132),plt.plot(maturities),plt.title('maturities')
+    plt.subplot(133),plt.plot(zero_rates),plt.title('zero_rates')
     plt.show()
