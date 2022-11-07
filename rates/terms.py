@@ -1,5 +1,5 @@
 # paper by patrick hagan, graeme west
-# methods for constructing yield curve
+# implements yield curve construction
 
 from dataclasses import dataclass
 import pandas as pd
@@ -36,7 +36,7 @@ class ZeroRateCurve: # useful when pricing bonds
         t = maturity of zcb
         rcont = the continuous rate
         """
-        return np.exp(-rcont * t)
+        return np.exp(-rcont * t) # Z(0, t)
 
     def rates_from_discount_factors(self, t: float, discount_factor: float) -> float:
         """computes the continuous rates from discount factors
@@ -84,16 +84,18 @@ class ZeroRateCurve: # useful when pricing bonds
         knot_points = np.arange(0, tmax, 0.01)
         fit_type += "_interp"
         zero_rates = map(getattr(self, fit_type), knot_points)
-        # getattr calls member function using its name in string
 
         return pd.Series(zero_rates, index=knot_points)
 
 
 if __name__ == "__main__":
-    maturities = np.arange(0,10)
-    zrc = ZeroRateCurve(maturities)
+    maturities = np.arange(0,10) # Z
+
+    # https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value_month=202211:
+    zero_rates = np.array([3.72, 4.00, 4.23, 4.35, 4.58, 4.75, 4.54, 4.48, 4.27, 4.18])
+
+    zrc = ZeroRateCurve(maturities, zero_rates)
     curve = zrc.build_curve()
-    plt.subplot(131),plt.plot(curve.values),plt.title('Yield Curve')
-    plt.subplot(132),plt.plot(maturities),plt.title('maturities')
-    plt.subplot(133),plt.plot(zero_rates),plt.title('zero_rates')
+    
+    plt.plot(curve.values),plt.title('Yield Curve')
     plt.show()
