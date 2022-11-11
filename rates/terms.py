@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.regime_switching.tests.test_markov_regression import fedfunds
 
 @dataclass
-class ZeroRateCurve: # useful when pricing bonds
+class ZeroRateCurve:
     """
     most bonds give many cash flows at different points in time,
     which means spot rates fit better than a single discount rate"""
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     maturities = np.arange(0,10) # Z
 
     # https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value_month=202211:
-    zero_rates = np.array([3.72, 4.00, 4.23, 4.35, 4.58, 4.75, 4.54, 4.48, 4.27, 4.18])
+    zero_rates = np.array([3.72, 4.00, 4.23, 4.35, 4.58, 5.75, 4.54, 4.48, 4.27, 4.18])
 
     zrc = ZeroRateCurve(maturities, zero_rates)
     curve = zrc.build_curve()
