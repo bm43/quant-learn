@@ -1,5 +1,6 @@
 # maybe move these to a jupyter notebook
-
+# 2022/11/13 author: Hyung Jip Lee
+# just practice code, not library style
 
 ################################
 # part 1: rejection sampling   #
@@ -79,3 +80,82 @@ class MarkovChain:
 ###############################
 # part 3: metropolis-hastings #
 ###############################
+# convert below this into jupyter notebook
+import pymc3 as pm # -> package for mcmc sample creation and bayesian inference
+
+cov = np.array([[1., 1.5], [1.5, 4]])
+mu = np.array([1, -1])
+
+with pm.Model() as model:
+    x = pm.MvNormal('x', mu=mu, cov=cov, shape=(1, 2))
+    step = pm.Metropolis()
+    trace = pm.sample(1000, step)
+
+import warnings
+warnings.simplefilter("ignore")
+
+pm.traceplot(trace)
+plt.show()
+
+plt.scatter(trace['x'][:, 0, 0], trace['x'][:, 0, 1])
+plt.show()
+
+# bayesian estimation w/ mcmc
+theta0 = 0.7
+np.random.seed(0)
+x_data1 = scipy.stats.bernoulli(theta0).rvs(10)
+print(x_data1)
+
+with pm.Model() as model:
+    theta = pm.Beta('theta', alpha=1, beta=1)
+    x = pm.Bernoulli('x', p=theta, observed=x_data1)
+    start = pm.find_MAP()
+    step = pm.NUTS()
+    trace1 = pm.sample(2000, step=step, start=start)
+
+pm.traceplot(trace1)
+plt.show()
+
+pm.plot_posterior(trace1)
+plt.xlim(0, 1)
+plt.show()
+
+pm.summary(trace1)
+
+np.random.seed(0)
+x_data2 = scipy.stats.bernoulli(theta0).rvs(500)
+
+with pm.Model() as model:
+    theta = pm.Beta('theta', alpha=1, beta=1)
+    x = pm.Bernoulli('x', p=theta, observed=x_data2)
+    start = pm.find_MAP()
+    step = pm.NUTS()
+    trace2 = pm.sample(1000, step=step, start=start)
+pm.traceplot(trace2)
+plt.show()
+
+pm.plot_posterior(trace2)
+plt.xlim(0, 1)
+plt.show()
+pm.summary(trace2)
+
+# linreg with bayes?
+from sklearn.datasets import make_regression
+
+x, y_data, coef = make_regression(
+    n_samples=100, n_features=1, bias=0, noise=20, coef=True, random_state=1)
+x = x.flatten()
+
+with pm.Model() as m:
+    w = pm.Normal('w', mu=0, sd=50)
+    b = pm.Normal('b', mu=0, sd=50)
+    esd = pm.HalfCauchy('esd', 5)
+    y = pm.Normal('y', mu=w * x + b, sd=esd, observed=y_data)
+
+    start = pm.find_MAP()
+    step = pm.NUTS()
+    trace1 = pm.sample(10000, step=step, start=start)
+
+pm.traceplot(trace1)
+plt.show()
+pm.summary(trace1)
