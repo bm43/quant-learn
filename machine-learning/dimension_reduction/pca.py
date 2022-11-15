@@ -8,7 +8,7 @@ from dataclasses import dataclass
 @dataclass
 class PCA:
 
-    n_components: int
+    n_components: int = 3
 
     def fit(self, X: np.ndarray):
         
