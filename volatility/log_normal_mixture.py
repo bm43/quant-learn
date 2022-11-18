@@ -1,0 +1,1 @@
+# https://quant.opengamma.io/Mixed_Log-Normal-Volatility-Model.pdf
