@@ -97,7 +97,7 @@ class CliquetOption:
             leftGridPt = self.xmin
             NNM = self.M
 
-        PSI = np.zeros(self.N-1, NNM)
+        self.PSI = np.zeros((self.N-1, NNM))
 
         # sample?
         Neta = 5*(NNM) + 15
@@ -122,8 +122,29 @@ class CliquetOption:
             th[5*i] = leftGridPt - 1.5*self.dx + self.dx*(i-1) + self.dx*g3
 
         # function weights for quadrature
-        w = np.array([-1.5-g3, -1.5-g2, -1.5, -1.5+g2, -1.5+g3, -.5-g3, -.5-g2, -.5, -.5+g2, -.5+g3,])
+        w = np.array([-1.5-g3, -1.5-g2, -1.5, -1.5+g2, -1.5+g3, -.5-g3, -.5-g2, -.5, -.5+g2, -.5+g3])
         for j in range(1,6):
             w[j] = ((w[j]+2)**3)/6
         for k in range(6,11):
             w[k] = 2/3 - .5*(w[k])**.3 - w[k]**2
+
+        v = [v3, v2, v1, v2, v3, v3, v2, v1, v2, v3]
+        w = self.C_aN * np.multiply(v, w)
+
+        zz = np.exp(1j*self.dxi*self._lcfr(th))
+        th = zz
+
+        # construct gaussian quadrature grid psi
+        for l in range(self.N-2):
+            self.PSI[l,:] = w[0]*(th(0:5:self.Neta-20) + th(19:5:self.Neta)) \
+              + w[1]*(th(1:5:self.Neta-19) + th(18:5:self.Neta-2)) \
+              + w[2]*(th(2:5:self.Neta-18)  + th(17:5:self.Neta-3)) \
+              + w[3]*(th(3:5:self.Neta-17)  + th(16:5:self.Neta-4)) \
+              + w[4]*(th(4:5:self.Neta-16)  + th(15:5:self.Neta-5)) \
+              + w[5]*(th(5:5:self.Neta-15)  + th(14:5:self.Neta-6)) \
+              + w[6]*(th(6:5:self.Neta-14)  + th(13:5:self.Neta-7)) \
+              + w[7]*(th(7:5:self.Neta-13)  + th(12:5:self.Neta-8)) \
+              + w[8]*(th(8:5:self.Neta-12)  + th(11:5:self.Neta-9)) \
+              + w[9]*(th(9:5:self.Neta-11)  + th(10:5:self.Neta-10))
+            th = np.multiply(th, zz)
+
