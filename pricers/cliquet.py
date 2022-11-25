@@ -4,6 +4,10 @@
 # product explanation:
 # https://hcommons.org/deposits/item/hc:38441/
 
+# relevant links:
+# https://sci.bban.top/pdf/10.1137/100818157.pdf#view=FitH
+# https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1101796
+
 from dataclasses import dataclass
 import numpy as np
 from math import floor
@@ -102,6 +106,9 @@ class CliquetOption:
         # sample?
         Neta = 5*(NNM) + 15
         Neta5 = NNM + 3
+
+        # https://en.wikipedia.org/wiki/Gauss%E2%80%93Legendre_quadrature
+        # number of points = 5
         g2 = np.sqrt(5 - 2*np.sqrt(10/7))/6
         g3 = np.sqrt(5 + 2*np.sqrt(10/7))/6
         v1 = .5*128/225
@@ -135,7 +142,7 @@ class CliquetOption:
         th = zz
 
         # construct gaussian quadrature grid psi
-        for l in range(self.N-2):
+        for l in range(self.N-1):
             self.PSI[l,:] = w[0]*(th(0:5:self.Neta-20) + th(19:5:self.Neta)) \
               + w[1]*(th(1:5:self.Neta-19) + th(18:5:self.Neta-2)) \
               + w[2]*(th(2:5:self.Neta-18)  + th(17:5:self.Neta-3)) \
@@ -148,3 +155,4 @@ class CliquetOption:
               + w[9]*(th(9:5:self.Neta-11)  + th(10:5:self.Neta-10))
             th = np.multiply(th, zz)
 
+        
