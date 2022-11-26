@@ -15,7 +15,7 @@ from math import pi
 
 @dataclass
 class contractParams:
-    K: float = 100.0# principal
+    K: float = 100.0 # principal
     C: float = 0.03 # local cap
     F: float = 0.02 # local floor
     GC: float = 0.08 # global cap
@@ -143,16 +143,46 @@ class CliquetOption:
 
         # construct gaussian quadrature grid psi
         for l in range(self.N-1):
-            self.PSI[l,:] = w[0]*(th(0:5:self.Neta-20) + th(19:5:self.Neta)) \
+            self.PSI[l,:] = w[0]*(th(0:5:self.Neta-20) + th(19:5:self.Neta-1)) \
               + w[1]*(th(1:5:self.Neta-19) + th(18:5:self.Neta-2)) \
-              + w[2]*(th(2:5:self.Neta-18)  + th(17:5:self.Neta-3)) \
-              + w[3]*(th(3:5:self.Neta-17)  + th(16:5:self.Neta-4)) \
-              + w[4]*(th(4:5:self.Neta-16)  + th(15:5:self.Neta-5)) \
-              + w[5]*(th(5:5:self.Neta-15)  + th(14:5:self.Neta-6)) \
-              + w[6]*(th(6:5:self.Neta-14)  + th(13:5:self.Neta-7)) \
-              + w[7]*(th(7:5:self.Neta-13)  + th(12:5:self.Neta-8)) \
-              + w[8]*(th(8:5:self.Neta-12)  + th(11:5:self.Neta-9)) \
-              + w[9]*(th(9:5:self.Neta-11)  + th(10:5:self.Neta-10))
+              + w[2]*(th(2:5:self.Neta-18) + th(17:5:self.Neta-3)) \
+              + w[3]*(th(3:5:self.Neta-17) + th(16:5:self.Neta-4)) \
+              + w[4]*(th(4:5:self.Neta-16) + th(15:5:self.Neta-5)) \
+              + w[5]*(th(5:5:self.Neta-15) + th(14:5:self.Neta-6)) \
+              + w[6]*(th(6:5:self.Neta-14) + th(13:5:self.Neta-7)) \
+              + w[7]*(th(7:5:self.Neta-13) + th(12:5:self.Neta-8)) \
+              + w[8]*(th(8:5:self.Neta-12) + th(11:5:self.Neta-9)) \
+              + w[9]*(th(9:5:self.Neta-11) + th(10:5:self.Neta-10))
             th = np.multiply(th, zz)
 
+    def _find_phi(self):
+        xi = np.transpose(self.dxi*np.arange(1, self.N))
+
+        b0 = 1208/2520
+        b1 = 1191/2520
+        b2 = 120/2520
+        b3 = 1/2520
+
+        zeta = (np.sin(xi/(2*self.a))/xi)**4 / (b0 + b1*np.cos(xi/self.a) + b2*np.cos(2*xi/self.a) + b3*np.cos(3*xi/self.a))
+        hvec = np.multiply(np.exp(-1j*self.xmin*self.xi), zeta)
+
+        beta = [1/self.A, np.multiply(self._lcfr(xi), hvec)]
+        beta = np.real(np.fft(beta))
         
+        if self.contract == 2 or self.contract == 3 or self.contract == 4:
+            phi = np.multiply(self.PSI,beta[self.klf-1:self.klc+1])
+            sumBetaLeft = self.C_aN * sum(beta[1:self.klf-2])
+            sumBetaRight = 1 - sumBetaLeft - self.C_aN*sum(beta[self.klf-1:self.klc+1])
+            phi = phi + np.exp(1j*self.C*xi)*sumBetaRight
+        
+        elif self.contract == 1 or self.contract == 5:
+            phi = self.PSI*beta[1:self.klc+1]
+            sumBetaRight = self.C_aN*sum(beta[self.klc+2:self.N+1])
+            phi = phi + np.exp(1j*self.C*xi)*sumBetaRight
+        
+        else:
+            phi = np.multiply(self.PSI, beta)
+
+        phi = np.power(phi, self.M)
+
+        return phi
