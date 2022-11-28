@@ -60,6 +60,8 @@ class CliquetOption:
         self._set_xmin()
         self._set_vals()
         self._gaussian_quad()
+        self._find_phi()
+        self._redefine_xmin_final()
         return
 
     def _rnch(self): # risk neutral characteristic function
@@ -187,29 +189,37 @@ class CliquetOption:
         zeta = (np.sin(xi/(2*self.a))/xi)**4 / (b0 + b1*np.cos(xi/self.a) + b2*np.cos(2*xi/self.a) + b3*np.cos(3*xi/self.a))
         hvec = np.multiply(np.exp(-1j*self.xmin*xi), zeta)
         
-        beta = np.array([1/self.A, np.multiply(self._lcfr(xi), hvec)], dtype=object).ravel()
-        print(beta.shape)
+        beta = np.insert(np.multiply(self._lcfr(xi), hvec), 0, 1/self.A)
+        
+        #print("lcfr(xi)*hvec shape: ",np.multiply(self._lcfr(xi), hvec).shape)
+        #print("beta shape: ", beta.shape)
+        
         beta = np.real(np.fft.fft(beta)) # only length 1 arrays can be converted to python scalars = ???
         
         if self.contract == 2 or self.contract == 3 or self.contract == 4:
             phi = np.multiply(self.PSI,beta[self.klf-1:self.klc+1])
             sumBetaLeft = self.C_aN * sum(beta[1:self.klf-2])
             sumBetaRight = 1 - sumBetaLeft - self.C_aN*sum(beta[self.klf-1:self.klc+1])
-            phi = phi + np.exp(1j*self.C*xi)*sumBetaRight
+            phi = phi + np.exp(1j*self.cp.C*xi)*sumBetaRight
         
         elif self.contract == 1 or self.contract == 5:
-            phi = self.PSI*beta[1:self.klc+1]
+            phi = self.PSI*beta[:self.klc+1]
             sumBetaRight = self.C_aN*sum(beta[self.klc+2:self.N+1])
-            phi = phi + np.exp(1j*self.C*xi)*sumBetaRight
+            
+            # https://stackoverflow.com/questions/69165788/sum-vector-with-matrix-in-numpy
+            var = (np.exp(1j*self.cp.C*xi)*sumBetaRight).reshape(-1,1)
+            phi = phi + var
         
         else:
             phi = np.multiply(self.PSI, beta)
 
         phi = np.power(phi, self.M)
+        
+        return phi # 1023 x 514
 
-        return phi
+    def _redefine_xmin_final(self):
+        return
 
 if __name__ == "__main__":
     co = CliquetOption()
     co.compute_contract_price()
-    co._find_phi()
