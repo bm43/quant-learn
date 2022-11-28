@@ -8,7 +8,7 @@
 # https://sci.bban.top/pdf/10.1137/100818157.pdf#view=FitH
 # https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1101796
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 from math import floor
 from math import pi
@@ -42,7 +42,7 @@ class CliquetOption:
     4 -> cliquet local caps sum and floors
     5 -> monthly capped sum
     """
-    cp: contractParams = contractParams()
+    cp: contractParams =  field(default_factory=lambda: contractParams())
 
     def __post_init__(self):
         
@@ -57,6 +57,9 @@ class CliquetOption:
         self.lf = np.log(1 + self.cp.F)
     
     def compute_contract_price(self):
+        self._set_xmin()
+        self._set_vals()
+        self._gaussian_quad()
         return
 
     def _rnch(self): # risk neutral characteristic function
@@ -74,7 +77,7 @@ class CliquetOption:
             # for every element in x:
             # if x[i] < lc, then x[i] = np.exp(x[i])-1
             # if x[i] >= lc, then x[i] = C*x[i]
-            return np.multiply(np.exp(x)-1, (x<self.lc).astype(int)) + np.multiply(self.C, (x>=self.lc).astype(int))
+            return np.multiply(np.exp(x)-1, (x<self.lc).astype(int)) + np.multiply(self.cp.C, (x>=self.lc).astype(int))
         elif self.contract == 2 or self.contract == 3 or self.contract == 4:
             if (self.klc != self.klf):
                 self.dx = (self.lc - self.lf) / (self.klc - self.klf)
@@ -101,7 +104,7 @@ class CliquetOption:
             leftGridPt = self.xmin
             NNM = self.M
 
-        self.PSI = np.zeros((self.N-1, NNM))
+        self.PSI = np.zeros((self.N-1, NNM)).astype(complex)
 
         # sample?
         Neta = 5*(NNM) + 15
@@ -117,43 +120,61 @@ class CliquetOption:
 
         # th
         th = np.zeros((1,Neta))
+        #print("th shape: ",th.shape)
 
         for i in range(1, Neta5):
             # can optimize using th[i:j:k]
             # th[1:7:2] yields [th[1], th[3], th[5]]
             # starting point included, end point excluded, step size
-            th[5*i-4] = leftGridPt - 1.5*self.dx + self.dx*(i-1) - self.dx*g3
-            th[5*i-3] = leftGridPt - 1.5*self.dx + self.dx*(i-1) - self.dx*g2
-            th[5*i-2] = leftGridPt - 1.5*self.dx + self.dx*(i-1)
-            th[5*i-1] = leftGridPt - 1.5*self.dx + self.dx*(i-1) + self.dx*g2
-            th[5*i] = leftGridPt - 1.5*self.dx + self.dx*(i-1) + self.dx*g3
+            #print("i: ", i)
+            #print("5i-4: ", 5*i - 4)
+            th[0, 5*i-4] = leftGridPt - 1.5*self.dx + self.dx*(i-1) - self.dx*g3
+            th[0, 5*i-3] = leftGridPt - 1.5*self.dx + self.dx*(i-1) - self.dx*g2
+            th[0, 5*i-2] = leftGridPt - 1.5*self.dx + self.dx*(i-1)
+            th[0, 5*i-1] = leftGridPt - 1.5*self.dx + self.dx*(i-1) + self.dx*g2
+            th[0, 5*i] = leftGridPt - 1.5*self.dx + self.dx*(i-1) + self.dx*g3
 
         # function weights for quadrature
-        w = np.array([-1.5-g3, -1.5-g2, -1.5, -1.5+g2, -1.5+g3, -.5-g3, -.5-g2, -.5, -.5+g2, -.5+g3])
+        w = np.array([-1.5-g3, -1.5-g2, -1.5, -1.5+g2, -1.5+g3, -.5-g3, -.5-g2, -.5, -.5+g2, -.5+g3]).astype(complex)
+        
         for j in range(1,6):
             w[j] = ((w[j]+2)**3)/6
-        for k in range(6,11):
+        for k in range(6,10):
+            
             w[k] = 2/3 - .5*(w[k])**.3 - w[k]**2
-
+            
         v = [v3, v2, v1, v2, v3, v3, v2, v1, v2, v3]
         w = self.C_aN * np.multiply(v, w)
 
         zz = np.exp(1j*self.dxi*self._lcfr(th))
         th = zz
+        """
+        print("th shape: ", th.shape)
+        print("w shape: ", w.shape)
+        print("th chunk shape: ",th[:,0:Neta-19:5].shape)
+        print("psi shape: ",self.PSI.shape)
+        print("psi chunk shape: ", self.PSI[0,:].shape)
+
+        print("th chunk: ", th)
+        """
 
         # construct gaussian quadrature grid psi
         for l in range(self.N-1):
-            self.PSI[l,:] = w[0]*(th(0:5:self.Neta-20) + th(19:5:self.Neta-1)) \
-              + w[1]*(th(1:5:self.Neta-19) + th(18:5:self.Neta-2)) \
-              + w[2]*(th(2:5:self.Neta-18) + th(17:5:self.Neta-3)) \
-              + w[3]*(th(3:5:self.Neta-17) + th(16:5:self.Neta-4)) \
-              + w[4]*(th(4:5:self.Neta-16) + th(15:5:self.Neta-5)) \
-              + w[5]*(th(5:5:self.Neta-15) + th(14:5:self.Neta-6)) \
-              + w[6]*(th(6:5:self.Neta-14) + th(13:5:self.Neta-7)) \
-              + w[7]*(th(7:5:self.Neta-13) + th(12:5:self.Neta-8)) \
-              + w[8]*(th(8:5:self.Neta-12) + th(11:5:self.Neta-9)) \
-              + w[9]*(th(9:5:self.Neta-11) + th(10:5:self.Neta-10))
+            self.PSI[l,:] = w[0]*(th[:,0:Neta-19:5] + th[:,19:Neta:5]) \
+              + w[1]*(th[:,1:Neta-18:5] + th[:,18:Neta-1:5]) \
+              + w[2]*(th[:,2:Neta-17:5] + th[:,17:Neta-2:5]) \
+              + w[3]*(th[:,3:Neta-16:5] + th[:,16:Neta-3:5]) \
+              + w[4]*(th[:,4:Neta-15:5] + th[:,15:Neta-4:5]) \
+              + w[5]*(th[:,5:Neta-14:5] + th[:,14:Neta-5:5]) \
+              + w[6]*(th[:,6:Neta-13:5] + th[:,13:Neta-6:5]) \
+              + w[7]*(th[:,7:Neta-12:5] + th[:,12:Neta-7:5]) \
+              + w[8]*(th[:,8:Neta-11:5] + th[:,11:Neta-8:5]) \
+              + w[9]*(th[:,9:Neta-10:5] + th[:,10:Neta-9:5])
             th = np.multiply(th, zz)
+            self.th = th
+
+        #print(self.PSI)
+        #print(self.PSI.shape)
 
     def _find_phi(self):
         xi = np.transpose(self.dxi*np.arange(1, self.N))
@@ -164,10 +185,11 @@ class CliquetOption:
         b3 = 1/2520
 
         zeta = (np.sin(xi/(2*self.a))/xi)**4 / (b0 + b1*np.cos(xi/self.a) + b2*np.cos(2*xi/self.a) + b3*np.cos(3*xi/self.a))
-        hvec = np.multiply(np.exp(-1j*self.xmin*self.xi), zeta)
-
-        beta = [1/self.A, np.multiply(self._lcfr(xi), hvec)]
-        beta = np.real(np.fft(beta))
+        hvec = np.multiply(np.exp(-1j*self.xmin*xi), zeta)
+        
+        beta = np.array([1/self.A, np.multiply(self._lcfr(xi), hvec)], dtype=object).ravel()
+        print(beta.shape)
+        beta = np.real(np.fft.fft(beta)) # only length 1 arrays can be converted to python scalars = ???
         
         if self.contract == 2 or self.contract == 3 or self.contract == 4:
             phi = np.multiply(self.PSI,beta[self.klf-1:self.klc+1])
@@ -186,3 +208,8 @@ class CliquetOption:
         phi = np.power(phi, self.M)
 
         return phi
+
+if __name__ == "__main__":
+    co = CliquetOption()
+    co.compute_contract_price()
+    co._find_phi()
