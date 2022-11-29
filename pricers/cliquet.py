@@ -18,23 +18,23 @@ class contractParams:
     K: float = 100.0 # principal
     C: float = 0.03 # local cap
     F: float = 0.02 # local floor
-    GC: float = 0.08 # global cap
-    GF: float = 0.01 # global floor
+    GC: float = 80.0 # global cap
+    GF: float = 0.0 # global floor
 
 @dataclass
 class CliquetOption:
     
     # grid params:
-    N: int = 1024# number of basis points, 2^?
-    alpha: int = 10# log asset grid width = 2*alpha
+    N: int = 512 # number of basis points, 2^?
+    alpha: int = 10 # log asset grid width = 2*alpha
 
     # contract parameters
     M: int = 100 # subintervals in [0,T], there are M+1 points cuz t=0
     r: float = 0.07 # interest rate
     q: float = 0.015 # dividend yield
-    T: float = 2 # years
+    T: float = 3 # years
     
-    contract: int = 1# type of contract, between 1 and 5
+    contract: int = 3 # type of contract, between 1 and 5
     """
     1 -> local caps sum
     2 -> local caps sum and floors
@@ -56,25 +56,26 @@ class CliquetOption:
         self.lc = np.log(1 + self.cp.C)
         self.lf = np.log(1 + self.cp.F)
     
-    def compute_contract_price(self):
+    def compute_contract_price(self) -> None:
         self._set_xmin()
         self._set_vals()
         self._gaussian_quad()
         self._find_phi()
-        self._redefine_xmin_final()
+        self._set_ymin()
+        self._final_step()
         return
 
     def _rnch(self): # risk neutral characteristic function
         return
 
-    def _set_xmin(self) -> float:
+    def _set_xmin(self) -> None:
         self.klc = floor(self.a*(self.lc - self.xmin)) + 1
         xklc = self.xmin + (self.klc - 1)*self.dx
         self.xmin = self.xmin + (self.lc - xklc)
 
         self.klf = floor(self.a*(self.lf - self.xmin)) + 1
 
-    def _lcfr(self, x: np.array): # locally capped / locally capped and floored return
+    def _lcfr(self, x: np.array) -> np.ndarray: # locally capped / locally capped and floored return
         if self.contract == 1 or self.contract == 5:
             # for every element in x:
             # if x[i] < lc, then x[i] = np.exp(x[i])-1
@@ -178,7 +179,7 @@ class CliquetOption:
         #print(self.PSI)
         #print(self.PSI.shape)
 
-    def _find_phi(self):
+    def _find_phi(self) -> np.ndarray:
         xi = np.transpose(self.dxi*np.arange(1, self.N))
 
         b0 = 1208/2520
@@ -197,10 +198,16 @@ class CliquetOption:
         beta = np.real(np.fft.fft(beta)) # only length 1 arrays can be converted to python scalars = ???
         
         if self.contract == 2 or self.contract == 3 or self.contract == 4:
-            phi = np.multiply(self.PSI,beta[self.klf-1:self.klc+1])
-            sumBetaLeft = self.C_aN * sum(beta[1:self.klf-2])
-            sumBetaRight = 1 - sumBetaLeft - self.C_aN*sum(beta[self.klf-1:self.klc+1])
-            phi = phi + np.exp(1j*self.cp.C*xi)*sumBetaRight
+            #print("psi: ", self.PSI.shape)
+            #print("beta: ", beta[self.klf-1:self.klc+2].shape)
+            phi = np.multiply(self.PSI,beta[self.klf-2:self.klc+1])
+            sumBetaLeft = self.C_aN * sum(beta[:self.klf])
+            sumBetaRight = 1 - sumBetaLeft - self.C_aN*sum(beta[self.klf-2:self.klc+1])
+            #print("sum1: ",(np.exp(1j*self.cp.F*xi)*sumBetaLeft).shape)
+            #print("sum2: ",(np.exp(1j*self.cp.C*xi)*sumBetaRight).shape)
+            var = (np.exp(1j*self.cp.F*xi)*sumBetaLeft + np.exp(1j*self.cp.C*xi)*sumBetaRight).reshape(-1,1)
+
+            phi = phi + var
         
         elif self.contract == 1 or self.contract == 5:
             phi = self.PSI*beta[:self.klc+1]
@@ -214,12 +221,74 @@ class CliquetOption:
             phi = np.multiply(self.PSI, beta)
 
         phi = np.power(phi, self.M)
-        
+        self.beta = beta
         return phi # 1023 x 514
 
-    def _redefine_xmin_final(self):
+    def _set_ymin(self) -> None:
+
+        if self.contract == 1 or self.contract == 2:
+            self.ymin = self.M * (np.exp((self.r - self.q)*self.dt) - 1) + (1-self.N/2)*self.dx
+
+        elif self.contract == 3:
+            self.ymin = self.cp.GF - self.dx
+            grididx = floor(self.a * (self.cp.GC - self.ymin)) + 1
+            
+            CF = self.cp.GC - self.cp.GF # global cap minus global floor
+            
+            z = self.a * (self.cp.GC - (self.ymin + self.dx * (grididx - 1)))
+            z2 = z**2
+            z3 = z*z2
+            z4 = z*z3
+            z5 = z*z4
+            
+            theta = np.zeros((1,int(self.N/2)))
+            theta[0] = self.dx/120
+            theta[0, 1] = 7*self.dx/30
+            theta[0, 2] = 121*self.dx/120
+            theta[0, 3:grididx-2] = self.dx * np.arange(2,grididx-3)
+            
+            theta[0, grididx-2] = self.dx*((grididx-2)*(-z4/24 + z3/6 - z2/4 +z/6 +23/24) \
+            - z5/30 +z4/6 - z3/3 + z2/3 - z/6 -59/30) + CF*(z-1)**4/24
+            
+            theta[0, grididx-1] = self.dx*((grididx-1)*(z4/8 - z3/3 +2*z/3 + .5)  +z5/10 -z4/2 +2*z3/3 +z2/3 -4*z/3 - 37/30) \
+            + CF*(-z4/8 +z3/3 -2*z/3 +1/2)
+
+            theta[0, grididx] = self.dx*(grididx*(-z4/8 + z3/6 +z2/4 +z/6 +1/24) - z5/10 +z4/2 -z3/3 -2*z2/3 - z/2 - 2/15  ) \
+            + self.cp.F*(.5 +1/24*(3*z4 - 4*z3 - 6*z2 - 4*z + 11))
+
+            theta[0, grididx+1] = self.dx*(z5/30 +(grididx-3)*z4/24) + CF*(1-z4/24)
+
+            theta[0, grididx+2:int(self.N/2)] = CF
+
+            self.theta = theta
+
+        elif self.contract == 4 or self.contract  == 5:
+            self.ymin = self.GF - self.dx
+            theta = zeros((1, self.N/2))
+            theta[0] = self.dx/120
+            theta[1] = 7*self.dx/30
+            theta[2] = 121*self.dx/120
+            theta[0, 3:self.N/2] = self.dx*np.arange(2, self.N/2 - 1)
+            self.theta = theta
+        
+        
         return
+        
+    def _filter(self) -> None:
+        return
+    
+    def _final_step(self) -> None:
+        if self.contract == 1 or self.contract == 2:
+            grid = self.ymin + self.dx * np.arange(self.N)
+            price = np.dot(grid[:self.N], self.beta[:self.N])
+            price = self.cp.K * np.exp(-self.r*self.T)*self.C_aN*price
+        elif self.contract == 3 or self.contract == 4 or self.contract == 5:
+            price = self.theta * self.beta[:int(self.N/2)]
+            price = self.cp.K * np.exp(-self.r*self.T)*(self.cp.GF + self.C_aN*price)
+        self.price = price
+        print("price is: ", price)
 
 if __name__ == "__main__":
     co = CliquetOption()
     co.compute_contract_price()
+    
