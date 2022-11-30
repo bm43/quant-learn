@@ -24,19 +24,31 @@ class ProjectionPursuitClassifier():
   # K: int # how many classes are there
 
   def __post_init__(self):
-    n, p = self.X.shape[0], self.X.shape[1]
-    K = self.y.shape[0]
-    M = 10
-    self.alpha = np.zeros((M, 1))
+    self.N, self.p = self.X.shape[0], self.X.shape[1]
+    
+    self.M = 10 # no. of features to be extracted, = no. of columns for Z
+    self._xavier_init()
+    #self.alpha = np.zeros((M, 1))
     self.beta = np.zeros((M, K))
 
+  def _xavier_init(self):
+    self.alpha = np.zeros((self.N, self.M, self.p)) # N Mxp matrices
+    
 
   def _sigmoid(self, x):
-    return
+    return 1/(1+np.exp(-x))
 
   def fit(self, X, y):
+    # features array
+    K = y.shape[0]
+    Z = np.zeros((N, M))
+    for i in range(self.N):
+      Z[i, :] = np.matmul(X[i,:], self.alpha[i, :, :]) # 1xp x pxM = 1xM
+
     return
 
   def predict(self, X):
     return
 
+if __name__ == "__main__":
+  ppr = ProjectionPursuitClassifier()
