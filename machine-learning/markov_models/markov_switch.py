@@ -10,6 +10,11 @@ https://econweb.ucsd.edu/~jhamilto/palgrav1.pdf
   https://homepage.ntu.edu.tw/~ckuan/pdf/Lec-Markov_note.pdf
 """
 
+# EM algo soures:
+# sources:
+# http://www.columbia.edu/~mh2078/MachineLearningORFE/EM_Algorithm.pdf
+# https://personal.eur.nl/kole/rsexample.pdf
+
 import random
 from typing import Tuple, List
 import numpy as np
@@ -196,7 +201,9 @@ class MarkovSwitch:
     return pkk, muk, [np.sqrt(var.mean())]
 
   def _em(self, obs: np.ndarray, iter: int = 10):
+    # sources:
     # http://www.columbia.edu/~mh2078/MachineLearningORFE/EM_Algorithm.pdf
+    # https://personal.eur.nl/kole/rsexample.pdf
     n = obs.shape[0]
     n_regime = self.n_regime
 
