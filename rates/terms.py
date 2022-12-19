@@ -68,12 +68,35 @@ class ZeroRateCurve:
         # find index where t1 < t < t2
         told = len(expiry[expiry < t]) - 1
         tnew = told + 1
-        terms = (r[tnew] - r[told]) / (expiry[tnew] - expiry[told])
-        return terms * (t - expiry[told]) + r[told]
+        terms = (r[tnew] - r[told]) / (expiry[tnew] - expiry[told]) # terms = (y2 - y1) / (x2 - x1)
+        return terms * (t - expiry[told]) + r[told] # terms * (x - x1) + y1
 
     # get cubic spline 
+
+    def _compute_changes(self, x: np.array) -> np.array:
+        return
+
     def cubic_interp(self, t: float) -> float:
-        return 0.0
+        """
+        performs cubic spline interpolation of spot rate"""
+
+        r = self.zero_rates
+        expiry = self.maturities
+        tmin = expiry[0]
+        tmax = expiry[-1]
+
+        if t < tmin or t > tmax:
+            print("Maturity out of bounds Error")
+            return 0.0
+        
+        if len(self.maturities) < 3:
+            raise ValueError("Not enough maturities")
+        if len(self.maturities) != len(self.zero_rates):
+            raise ValueError("Lengths of zero rates and maturities are different")
+
+        # https://blog.scottlogic.com/2020/05/18/cubic-spline-in-python-and-alteryx.html
+        
+        return 
     
     def build_curve(self, fit_type: Optional[str] = "linear") -> pd.Series:
         """builds a zero rate curve based on type of interpolation
