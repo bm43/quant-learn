@@ -115,7 +115,7 @@ class ZeroRateCurve:
 
         return X
 
-    def _get_curve_coeffs(self): # notice how type of t is different from linear interp
+    def cubic_spline_interp(self): # notice how type of t is different from linear interp
         # t = knot points, cf. build_curve
         n = len(self.maturities)
         y = self.zero_rates
@@ -135,17 +135,16 @@ class ZeroRateCurve:
 
         M = self._solve_tridiagonalsystem(A, B, C, D)
         
-        coefficients = [[(M[i+1]-M[i])*h[i]*h[i]/6, M[i]*h[i]*h[i]/2, (y[i+1] - y[i] - (M[i+1]+2*M[i])*h[i]*h[i]/6), y[i]] for i in range(len(self.maturities)-1)]
-        
-        return coefficients
+        self.coefficients = [[(M[i+1]-M[i])*h[i]*h[i]/6, M[i]*h[i]*h[i]/2, (y[i+1] - y[i] - (M[i+1]+2*M[i])*h[i]*h[i]/6), y[i]] for i in range(len(self.maturities)-1)]
 
-    def cubic_spline_interp(self, t: float): # spline
-        coeffs = self._get_curve_coeffs() # compute spline
-        idx = min(bisect.bisect(self.knot_points, t)-1, len(self.maturities)-2)
-        z = (t - self.knot_points[idx]) / self.h[idx]
-        C = coeffs[idx]
-        return (((C[0] * z) + C[1]) * z + C[2]) * z + C[3]
+        def spline(t: float): # spline
+            idx = min(bisect.bisect(self.maturities, t)-1, len(self.maturities)-2)
+            z = (t - self.maturities[idx]) / self.h[idx]
+            C = self.coefficients[idx]
+            return (((C[0] * z) + C[1]) * z + C[2]) * z + C[3]
     
+        return spline
+
     def build_curve(self, fit_type: Optional[str] = "linear") -> pd.Series:
         """builds a zero rate curve based on type of interpolation
         fit_type = linear_spot, constant_fwd, or cubic_spline
@@ -156,7 +155,12 @@ class ZeroRateCurve:
         fit_type += "_interp"
         
         self.knot_points = np.arange(0, tmax, 0.01)
-        zero_rates = map(getattr(self, fit_type), self.knot_points)
+        if fit_type == "cubic_spline_interp":
+            spline = self.cubic_spline_interp()
+            print(self.knot_points)
+            zero_rates = list(map(spline, self.knot_points))
+        elif fit_type == "linear_interp":
+            zero_rates = map(getattr(self, fit_type), self.knot_points)
 
         return pd.Series(zero_rates, index=self.knot_points)
         
