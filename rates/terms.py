@@ -4,9 +4,10 @@
 from dataclasses import dataclass
 import pandas as pd
 import numpy as np
-from typing import Optional
+from typing import Optional, Tuple, List
 import matplotlib.pyplot as plt
 from statsmodels.tsa.regime_switching.tests.test_markov_regression import fedfunds
+import bisect
 
 @dataclass
 class ZeroRateCurve:
@@ -56,14 +57,14 @@ class ZeroRateCurve:
         k: float = maturity of payment date of $1
         returns rate corresponding to maturity t
         """
+        
         r = self.zero_rates
         expiry = self.maturities
         tmin = expiry[0]
         tmax = expiry[-1]
 
         if t < tmin or t > tmax:
-            print("Maturity out of bounds Error")
-            return 0.0
+            raise ValueError("Maturity out of bounds Error")
 
         # find index where t1 < t < t2
         told = len(expiry[expiry < t]) - 1
@@ -73,30 +74,78 @@ class ZeroRateCurve:
 
     # get cubic spline 
 
-    def _compute_changes(self, x: np.array) -> np.array:
-        return
+    def _get_delta_x(self, x: np.array) -> np.array: # changes in x
+        print(x)
+        return np.array([x[i+1] - x[i] for i in range(len(x)-1)])
 
-    def cubic_interp(self, t: float) -> float:
+    def _create_tridiagonalmatrix(self, n: int, h: List[float]) -> Tuple[List[float], List[float], List[float]]:
         """
-        performs cubic spline interpolation of spot rate"""
+        creates tridiagonal matrix for cubic spline interpolation.
+        n: int, length of maturities
+        h: List, delta x on maturities
 
-        r = self.zero_rates
-        expiry = self.maturities
-        tmin = expiry[0]
-        tmax = expiry[-1]
+        return: 3 Lists A B and C representing the tridiagonal matrix
+        """
+        A = [h[i] / (h[i] + h[i + 1]) for i in range(n - 2)] + [0]
+        B = [2] * n
+        C = [0] + [h[i + 1] / (h[i] + h[i + 1]) for i in range(n - 2)]
+        return A, B, C
 
-        if t < tmin or t > tmax:
-            print("Maturity out of bounds Error")
-            return 0.0
+    def _create_target(self, n: int, h: List[float], y: List[float]):
+        # n = length of maturities
+        # h = delta x
+        # y = zero_rates
+        return [0] + [6 * ((y[i + 1] - y[i]) / h[i] - (y[i] - y[i - 1]) / h[i - 1]) / (h[i] + h[i-1]) for i in range(1, n - 1)] + [0]
+
+    def _solve_tridiagonalsystem(self, A: List[float], B: List[float], C: List[float], D: List[float]) -> List:
+        c_p = C + [0]
+        d_p = [0] * len(B)
+        X = [0] * len(B)
+
+        c_p[0] = C[0] / B[0]
+        d_p[0] = D[0] / B[0]
+
+        for i in range(1, len(B)):
+            c_p[i] = c_p[i] / (B[i] - c_p[i - 1] * A[i - 1])
+            d_p[i] = (D[i] - d_p[i - 1] * A[i - 1]) / (B[i] - c_p[i - 1] * A[i - 1])
+
+        X[-1] = d_p[-1]
+        for i in range(len(B) - 2, -1, -1):
+            X[i] = d_p[i] - c_p[i] * X[i + 1]
+
+        return X
+
+    def cubic_spline_interp(self, t: np.array): # notice how type of t is different from linear interp
+        # t = knot points, cf. build_curve
+        n = len(self.maturities)
+        y = self.zero_rates
+
+        if n < 3:
+            raise ValueError('length of self.maturities not long enough')
+        if n != len(self.zero_rates):
+            raise ValueError('Array lengths are different')
+
+        print(t)
+        h = self._get_delta_x(t)
+        if any(v < 0 for v in self.maturities):
+            raise ValueError('maturities must be strictly increasing')
+
+        A, B, C = self._create_tridiagonalmatrix(n, h)
+        D = self._create_target(n, h, y)
+
+        M = self._solve_tridiagonalsystem(A, B, C, D)
         
-        if len(self.maturities) < 3:
-            raise ValueError("Not enough maturities")
-        if len(self.maturities) != len(self.zero_rates):
-            raise ValueError("Lengths of zero rates and maturities are different")
+        coefficients = [[(M[i+1]-M[i])*h[i]*h[i]/6, M[i]*h[i]*h[i]/2, (y[i+1] - y[i] - (M[i+1]+2*M[i])*h[i]*h[i]/6), y[i]] for i in range(len(t)-1)]
 
-        # https://blog.scottlogic.com/2020/05/18/cubic-spline-in-python-and-alteryx.html
+        def spline(val):
+            idx = min(bisect.bisect(t, val)-1, n-2)
+            z = (val - t[idx]) / h[idx]
+            C = coefficients[idx]
+            return (((C[0] * z) + C[1]) * z + C[2]) * z + C[3]
+
+        curve = [spline(y) for y in self.zero_rates]
         
-        return 
+        return curve
     
     def build_curve(self, fit_type: Optional[str] = "linear") -> pd.Series:
         """builds a zero rate curve based on type of interpolation
@@ -104,21 +153,27 @@ class ZeroRateCurve:
         Returns zero rate curve for all maturities
         """
         tmax = self.maturities[-1]
-        knot_points = np.arange(0, tmax, 0.01)
+        
         fit_type += "_interp"
-        zero_rates = map(getattr(self, fit_type), knot_points)
-
-        return pd.Series(zero_rates, index=knot_points)
+        if fit_type == "linear_interp":
+            knot_points = np.arange(0, tmax, 0.01)
+            zero_rates = map(getattr(self, fit_type), knot_points)
+            return pd.Series(zero_rates, index=knot_points)
+        elif fit_type == "cubic_spline_interp":
+            print("c")
+            zero_rates = getattr(self, fit_type)(self.maturities)
+            return pd.Series(zero_rates, index=self.maturities)
+        
 
 
 if __name__ == "__main__":
-    maturities = np.arange(0,10) # Z
+    maturities = np.arange(0,10) # X, in this case maturities were arbitrarily chosen
 
     # https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value_month=202211:
-    zero_rates = np.array([3.72, 4.00, 4.23, 4.35, 4.58, 5.75, 4.54, 4.48, 4.27, 4.18])
+    zero_rates = np.array([3.72, 4.00, 4.23, 4.35, 4.58, 5.75, 4.54, 4.48, 4.27, 4.18]) # y
 
     zrc = ZeroRateCurve(maturities, zero_rates)
-    curve = zrc.build_curve()
-    
+    curve = zrc.build_curve("cubic_spline")
+
     plt.plot(curve.values),plt.title('Yield Curve')
     plt.show()
