@@ -164,7 +164,12 @@ class ZeroRateCurve:
 
         return pd.Series(zero_rates, index=self.knot_points)
         
-
+#########################
+# notes:
+# purpose: constructs an yield curve given the interest rates vs maturites
+# interpolates to construct the curve.
+# 2 methods: linear and cubic
+# constructed curve is called zero_rates
 
 if __name__ == "__main__":
     maturities = np.arange(0,10) # X, in this case maturities were arbitrarily chosen
