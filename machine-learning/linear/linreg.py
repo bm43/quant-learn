@@ -13,20 +13,32 @@ from scipy.linalg import solve_triangular
 from dataclasses import dataclass, field
 from typing import Optional, Union
 from scipy.optimize import minimize
+from abc import ABCMeta, abstractmethod
 
 # dataclass just allows you to write less code
 # self.bla -> bla: type hint
 
 # field is to give additional information
 
+class LinearABC(metaclass = ABCMeta):
+    """
+    @abstractmethod
+    def fit(self):
+        pass
+    """
+    @abstractmethod
+    def predict(self):
+        pass
+
+"""
 @dataclass
 class RegressionMetrics:
     #model: Union[LinearRegression, LinearRegression_MLE]
-    X: np.ndarray
-    y: np.ndarray
+    X: np.ndarray #= field(init=False, default_factory=np.array([]))
+    y: np.ndarray #= field(init=False, default_factory=np.array([]))
     #theta: np.ndarray
-    predictions: Optional[np.ndarray] = field(init=False, default=np.array([]))
-    residuals: np.ndarray = field(init=False, default=np.array([]))
+    predictions: Optional[np.ndarray] #= field(init=False, default_factory=np.array([]))
+    residuals: np.ndarray #= field(init=False, default_factory=np.array([]))
     rss: float = field(init=False, default=0.0) # residual sum of sq
     ess: float = field(init=False, default=0.0) # explained sum of sq
     tss: float = field(init=False, default=0.0) # total sum of sq
@@ -46,7 +58,7 @@ class RegressionMetrics:
 
         # getattr 오브젝트의 attribute 값을 리턴
         # getattr(c, 'x') <=> c.x
-        self.predictions = getattr(self.obj, "predict")(self.X)
+        self.predictions = getattr(self.obj, "predict")(self.X) # to do this abstract class is needed
         self.residuals = self.y - self.predictions
         self.rss = self.residuals @ self.residuals
         self.tss = ((self.y - ybar) @ (self.y - ybar))
@@ -54,11 +66,12 @@ class RegressionMetrics:
         self.r2 = self.ess / self.tss
         self.mse = self.rss / n
         self.mae = abs(self.residuals) / n
+"""
 
 @dataclass
 class LinearRegression(object):
 
-    theta: np.ndarray = field(init=False, default=np.array([]))
+    theta: np.ndarray = field(init=False, default_factory=np.array([]))
     #metrics: Optional[RegressionMetrics] = field(init=False)
     metrics: Optional[dict] = field(init=False)
 
@@ -85,19 +98,31 @@ class LinearRegression(object):
         return solve_triangular(A.T, B)
 
     def get_metrics(self, X: np.array, y: np.array) -> dict:
-        X=X.reshape(-1,1)
+        X = X.reshape(-1,1)
         n, p = X.shape[0], X.shape[1]
         ybar = y.mean()
-        predictions = self.predict(X, y)
-        residuals = y - predictions
-        rss = residuals @ residuals
-        tss = (y-ybar)@(y-ybar).T
-        ess = tss - rss
-        r2 = ess/tss
-        mse = rss/n
-        mae = abs(residuals)/n
+        self.predictions = self.predict(X, y)
+        self.residuals = y - predictions
+        self.rss = residuals @ residuals
+        self.tss = (y-ybar)@(y-ybar).T
+        self.ess = tss - rss
+        self.r2 = ess/tss
+        self.mse = rss/n
+        self.mae = abs(residuals)/n
 
-        return {"r2": r2, "mse": mse, "mae": mae}
+        # prints anova table:
+        print("\n")
+        print("-------------------------------------------------------\n")
+        print("                      ANOVA table                     \n")
+        print("-------------------------------------------------------\n")
+        print("|  source  |   sum of squares  |  df  |  mean square  |")
+        print("-------------------------------------------------------\n")
+        print("| residual |  ", self.rss, "  |  ", len(self.theta), "  |  ", self.mae, "  |")
+        print("| error |  ", self.ess, "  |  ", n - len(self.theta) - 1, "  |  ", self.mse, "  |")
+        print("| total |  ", self.tss, "  |  ", n - 1, "  |              |")
+
+
+        return {"r2": self.r2, "mse": self.mse, "mae": self.mae}
 
     def fit(self, X: np.ndarray, y: np.ndarray, method: str = "ols", get_metric: bool = False):
         
@@ -122,7 +147,7 @@ class LinearRegression(object):
 @dataclass
 class LinearRegression_MLE(object):
 
-    theta: Optional[np.ndarray] = field(init = False, default = np.array([]))
+    theta: Optional[np.ndarray] = field(init = False, default_factory = np.array([]))
     # specify type of  variables in class (self.something)
 
     def loglikelihood(self, y, yhat):
@@ -155,10 +180,11 @@ class LinearRegression_MLE(object):
 
     def predict(self, X, thetas):
         return X @ thetas
-
+"""
 def compute_metrics(
     #model: Union[LinearRegression, LinearRegression_MLE],
     X: np.ndarray, y: np.ndarray
     ) -> RegressionMetrics:
     return RegressionMetrics(X, y)
     #return RegressionMetrics(model, X, y, model.theta)
+"""

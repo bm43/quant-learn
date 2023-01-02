@@ -23,10 +23,14 @@ def test_plot(X, y, beta_hat):
 
 X, y = generate_dumb_data(100)
 
-
 lr = LinearRegression()
+"""
+  File "<string>", line 3, in __init__
+TypeError: 'numpy.ndarray' object is not callable
+????????????????????????
+"""
 
-lr.fit(X,y, get_metric=True)
+lr.fit(X, y, get_metric=True)
 
 print(lr.theta)
 
