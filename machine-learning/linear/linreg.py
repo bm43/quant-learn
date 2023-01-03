@@ -70,8 +70,8 @@ class RegressionMetrics:
 
 @dataclass
 class LinearRegression(object):
-
-    theta: np.ndarray = field(init=False, default_factory=np.array([]))
+    theta = np.array([])
+    #theta: np.array = field(init=False, default_factory=np.array([]))
     #metrics: Optional[RegressionMetrics] = field(init=False)
     metrics: Optional[dict] = field(init=False)
 
@@ -101,26 +101,27 @@ class LinearRegression(object):
         X = X.reshape(-1,1)
         n, p = X.shape[0], X.shape[1]
         ybar = y.mean()
-        self.predictions = self.predict(X, y)
-        self.residuals = y - predictions
-        self.rss = residuals @ residuals
-        self.tss = (y-ybar)@(y-ybar).T
-        self.ess = tss - rss
-        self.r2 = ess/tss
-        self.mse = rss/n
-        self.mae = abs(residuals)/n
-
+        self.predictions = self.predict(X)
+        self.residuals = y - self.predictions
+        self.rss = self.residuals.T @ self.residuals
+        self.tss = (y-ybar).T@(y-ybar)
+        self.ess = self.tss - self.rss
+        self.r2 = self.ess/self.tss
+        self.mse = self.rss/n
+        self.mae = sum(abs(self.residuals))/n
+        
         # prints anova table:
+        # anova table style from: Regression Modeling with Actuarial and Financial Applications by Edward W. Frees
         print("\n")
-        print("-------------------------------------------------------\n")
-        print("                      ANOVA table                     \n")
-        print("-------------------------------------------------------\n")
+        print("-------------------------------------------------------")
+        print("                      ANOVA table                     ")
+        print("-------------------------------------------------------")
         print("|  source  |   sum of squares  |  df  |  mean square  |")
-        print("-------------------------------------------------------\n")
-        print("| residual |  ", self.rss, "  |  ", len(self.theta), "  |  ", self.mae, "  |")
-        print("| error |  ", self.ess, "  |  ", n - len(self.theta) - 1, "  |  ", self.mse, "  |")
-        print("| total |  ", self.tss, "  |  ", n - 1, "  |              |")
-
+        print("-------------------------------------------------------")
+        print("| residual |  ", self.rss[0][0], "   |  ", len(self.theta), "  |  ", self.mae[0], "  |")
+        print("|  error   |  ", self.ess[0][0], "   |  ", n - len(self.theta) - 1, "  |  ", self.mse[0][0], "  |")
+        print("|  total   |  ", self.tss[0][0], "  |  ", n - 1, " |                      |")
+        
 
         return {"r2": self.r2, "mse": self.mse, "mae": self.mae}
 
@@ -140,9 +141,8 @@ class LinearRegression(object):
     
     def predict(self, X: np.array, params: Optional[np.array] = None):
         if params is None:
-            return np.dot(X, self.theta)
-        print("params shape: ", params.shape)
-        return np.dot(X, params.T)
+            return X * self.theta[0] + self.theta[1]
+        return X * params[0] + params[1]
 
 @dataclass
 class LinearRegression_MLE(object):
