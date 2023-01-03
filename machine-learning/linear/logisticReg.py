@@ -1,7 +1,9 @@
+# implementing logistic regression from scratch
+# author: Hyung Jip Lee, 2022
+
 from dataclasses import dataclass, field
 from typing import Union
 import numpy as np
-# will add logistic regression
 
 @dataclass
 class LogisticRegression:
