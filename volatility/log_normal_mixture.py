@@ -20,7 +20,7 @@ class NormalLogNormalMixtureModel:
         for i in range(len(data)):
             #print(mu * mu / math.sqrt(sigma * sigma + mu * mu))
             alpha = math.log(mu * mu / math.sqrt(sigma * sigma + mu * mu) + 1e-10)
-            beta = math.sqrt(math.log(sigma * sigma / (mu * mu) + 1)) # div by 0
+            beta = math.sqrt(math.log(sigma * sigma / (mu * mu) + 1)) 
             z = math.log(data[i])
             p = (1 / (math.sqrt(2 * math.pi) * beta)) * math.exp(-0.5 * (z - alpha)**2 / beta**2)
             q = (1 / (math.sqrt(2 * math.pi) * sigma)) * math.exp(-0.5 * (z - mu)**2 / sigma**2)
@@ -29,8 +29,8 @@ class NormalLogNormalMixtureModel:
             #print('p: ', p)
             #print('q: ', q)
             #print('denom: ', kappa * p + (1 - kappa) * q)
-
-            w = kappa * p / (kappa * p + (1 - kappa) * q) # division by zero when p = 0 and kappa = 1 in this case
+            
+            w = kappa * p / (kappa * p + (1 - kappa) * q)
 
             """
             print('w: ',w)

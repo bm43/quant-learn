@@ -8,6 +8,26 @@
 
 using namespace std;
 
+double wiener_process(double dt, double mu, double sigma) {
+    double W;
+    // Use the Box-Muller method to generate a normally distributed random number
+    double U1 = (double)rand() / RAND_MAX;
+    double U2 = (double)rand() / RAND_MAX;
+    double R = sqrt(-2 * log(U1));
+    double theta = 2 * M_PI * U2;
+    W = R * cos(theta);
+    // Scale the random number to the desired mean and standard deviation
+    W = W * sigma * sqrt(dt) + mu * dt;
+    return W;
+}
+
+double geometric_brownian_motion(double S, double mu, double sigma, double dt) {
+    double W;
+    W = wiener_process(dt, mu, sigma);
+    S = S * exp((mu - 0.5 * pow(sigma, 2)) * dt + sigma * sqrt(dt) * W);
+    return S;
+}
+
 // Function to calculate the delta of an option
 double optionDelta(double S, double K, double r, double sigma, double T, bool isCall) {
     double d1 = (log(S/K) + (r + 0.5 * pow(sigma, 2)) * T) / (sigma * sqrt(T));
@@ -17,7 +37,7 @@ double optionDelta(double S, double K, double r, double sigma, double T, bool is
       return normcdf(d1) - 1;
 }
 
-// Function to calculate the PnL of the delta hedging strategy
+// Function to calculate the PnL of the delta hedging strategies
 vector<double> PnL(double S, double K, double r, double sigma, double T, bool isCall, double delta, double tc, double hf) {
     double dt = T/hf;
     double S_ = S;

@@ -1,6 +1,8 @@
 // 2022/11/16
 // author: Hyung Jip Lee
 // Monte Carlo Simulation for Option Pricing
+#ifndef MC_SIMULATION_HPP
+#define MC_SIMULATION_HPP
 
 #include <math.h>
 #include <cmath>
@@ -43,3 +45,5 @@ double Option_StdMC(std::string callorput, double S, double X,
         price = exp(-r * T) * sum / n;
 
 }
+
+#endif
