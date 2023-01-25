@@ -46,7 +46,7 @@ vector<double> PnL(double S, double K, double r, double sigma, double T, bool is
     double sharpeRatio_ = 0;
     vector<double> result;
     for (int i = 0; i < hf; i++) {
-        double dS = S_ * sigma * sqrt(dt) *  norminv(rand());
+        double dS = geometric_brownian_motion(S_, K, sigma, dt);
         S_ += dS;
         double C = optionDelta(S_, K, r, sigma, T, isCall) * S_ - delta_ * S_;
         PnL_ += dS - C - tc;
