@@ -4,7 +4,8 @@ Various implementations that are useful in quant finance
 
 **DL_accelerate**: make DL models faster using quantization and pruning  
 algotrading: Alpaca API and some strategies  
-**Machine-learning**: machine learning tools implemented from scratch  
+**Machine-learning**: machine learning tools implemented from scratch   
+Neural_nets: neural network layers from scratch  
 **Pricers**: pricing methods for options   
 **rates**: constructing rate curves, mainly for bond pricing  
 **Time-series**: time series feature engineering and analysis from scratch  
