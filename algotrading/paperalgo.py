@@ -28,8 +28,8 @@ from hyperliquid.utils import constants
 from hyperliquid.utils.signing import get_timestamp_ms
 
 # CONFIG - Edit these
-ACCOUNT_ADDRESS = "0xYourMasterAccountAddressHere"  # Main wallet address (public)
-SECRET_KEY = "0xYourApiWalletPrivateKeyHere"        # API wallet private key
+ACCOUNT_ADDRESS = ""  # Main wallet address (public)
+SECRET_KEY = ""        # API wallet private key
 USE_TESTNET = True                                  # Set False for mainnet
 SYMBOL = "BTC"                                      # Asset name, e.g. "BTC", "ETH"
 ASSET_INDEX = 0                                     # Get from info.meta() -> universe.indexOf(SYMBOL)
