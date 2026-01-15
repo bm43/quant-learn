@@ -54,7 +54,7 @@ class DecisionTreeClassifier:
         ent = -np.sum([p * np.log2(p) for p in probs if p > 0])
         return ent
 
-    def _create_split(self, X, thr) -> tuple(np.array, np.array):
+    def _create_split(self, X, thr) -> tuple[np.array, np.array]:
         # X 중에 thr 보다 높은 값인 data point = right
         left_idx = np.argwhere(X <= thr).flatten()
         right_idx = np.argwhere(X > thr).flatten()

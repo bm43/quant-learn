@@ -2,13 +2,12 @@
 # author: Hyung Jip Lee, 2022
 
 from dataclasses import dataclass, field
-from typing import Union
 import numpy as np
 
 @dataclass
 class LogisticRegression:
 
-    def sigmoid(self, x):
+    def sigmoid(self, x: np.float):
         return 1 / (1 + np.exp(-x))
 
     def _hessian(self, X: np.ndarray, w: np.ndarray) -> np.ndarray:

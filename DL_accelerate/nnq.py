@@ -1,5 +1,7 @@
 # illustrates the concept of quantization
 
+import numpy as np
+
 # Define the quantization function
 def quantize(x, n_bits):
     max_val = np.max(np.abs(x))

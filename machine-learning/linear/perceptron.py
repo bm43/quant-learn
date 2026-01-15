@@ -4,7 +4,7 @@ author: Hyung Jip Lee"""
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing ipmort PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures
 from dataclasses import dataclass
 from typing import ndarray, Optional
 
