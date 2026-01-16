@@ -15,13 +15,14 @@ class Perceptron:
     eta: float = 0.01
     thetas = None
     weights = None
+    bias = 0
     degree: int = 1
 
     def fit(self, X: ndarray, y: ndarray, method: Optional[str] = None):
         if method is None or method == "online":
             # online learning
             R = (np.sum(np.abs(X) ** 2, axis=-1) ** (0.5)).max()
-            bias = 0
+            
             deny = 0
             prev_deny = 0
             # weight init
@@ -30,7 +31,7 @@ class Perceptron:
             # start training loop
             while True:
                 for x_i, y_i in zip(X, y):
-                    if y_i * (X @ self.thetas + bias) <= 0:
+                    if y_i * (X @ self.thetas + self.bias) <= 0:
                         self.thetas[1:] += self.eta * y_i * x_i
                         bias += self.eta * y_i * R * R
                         deny += 1
@@ -38,7 +39,7 @@ class Perceptron:
                     break
                 prev_deny = deny
             
-            self.thetas[0] = bias
+            self.thetas[0] = self.bias
             
             return self
 
@@ -47,7 +48,7 @@ class Perceptron:
 
     def batch_fit(self, X: ndarray, y: ndarray):
         degree = self.degree
-        pf = PolynomialFeatures(degree= degree, include_bias=bias)
+        pf = PolynomialFeatures(degree= degree, include_bias=self.bias)
         X = pf.fit_transform(X)
 
         # init weights
@@ -76,14 +77,12 @@ class Perceptron:
 
     def predict(self, X: ndarray, thetas: Optional[ndarray]):
         if thetas is None:
-            if (X @ self.thetas + bias) >= 0:
+            if (X @ self.thetas + self.bias) >= 0:
                 return 1
             else:
                 return -1
         else:
-            if (X @ thetas + bias) >= 0:
+            if (X @ thetas + self.bias) >= 0:
                 return 1
             else:
                 return -1
-
-        return self
