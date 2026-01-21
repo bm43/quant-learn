@@ -18,14 +18,14 @@ class scaled_dot_product_attention(nn.Module):
     # mask: B x N x 
 
     def __init__(self, dk: int):
-        super.__init__()
+        super().__init__()
         self.sqrt_dk = np.sqrt(dk)
 
     def forward(self, Q: torch.Tensor, K: torch.Tensor, V: torch.Tensor,
                 mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         
         # attention scores:
-        scores = torch.bmm(Q, K.transpose(-2, -1)) / self.sqrt_dk
+        scores = torch.bmm(Q, K.transpose(-2, -1)) / self.sqrt_dk # QK/dk
         # bmm vs matmul:
         # bmm is used when both are batches:
         # B x n x m times B x m x p = B x n x p
@@ -37,9 +37,9 @@ class scaled_dot_product_attention(nn.Module):
             scores = scores.masked_fill(reshaped_mask, float('-inf'))
 
         attention_dist = F.softmax(scores, dim=-1)
-        context_v = torch.bmm(attention_dist, V)
+        context = torch.bmm(attention_dist, V)
 
-        return context_v, attention_dist
+        return context, attention_dist
 
 
 class multi_head_attention(nn.Module):
@@ -49,7 +49,7 @@ class multi_head_attention(nn.Module):
     # implementing h parallel attentions
 
     def __init__(self, d_k: int = 512, h: int = 8, dropout: Optional[float] = 0.1):
-        super.__init__() # call init of parent class
+        super().__init__() # call init of parent class
         assert d_k % h == 0, "d_k % h isn't 0"
 
         self.d_h = d_k // h
@@ -68,19 +68,19 @@ class multi_head_attention(nn.Module):
         
         # linear proj
         Q = self.W_q(Q)
-        K = self.W_v(K)
+        K = self.W_k(K)
         V = self.W_v(V)
 
         # view is more memory efficient reshape
-        Q = Q.view(B, -1, self.h, self.d_k).transpose(1, 2)
-        K = K.view(B, -1, self.h, self.d_k).transpose(1, 2)
-        V = V.view(B, -1, self.h, self.d_k).transpose(1, 2)
+        Q = Q.view(B, -1, self.h, self.d_h).transpose(1, 2)
+        K = K.view(B, -1, self.h, self.d_h).transpose(1, 2)
+        V = V.view(B, -1, self.h, self.d_h).transpose(1, 2)
 
         if mask is not None and mask.dim() == 3:
             mask = mask.unsqueeze(1) # creates dimension that is 1.
 
-        context, attention_weights = self.sdpa(Q,K,V,mask) # __call__ methods of nn.Module
-
+        context, attention_weights = self.sdpa(Q,K,V,mask) # calls __call__ method of nn.Module
+        # attention weights - B x h x N x N
         context = context.transpose(1, 2).contiguous().view(B,-1,self.d_k)
 
         # output
