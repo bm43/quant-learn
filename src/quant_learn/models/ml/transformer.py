@@ -25,19 +25,23 @@ class scaled_dot_product_attention(nn.Module):
                 mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         
         # attention scores:
-        scores = torch.bmm(Q, K.transpose(-2, -1)) / self.sqrt_dk # QK/dk
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / self.sqrt_dk # QK/dk
         # bmm vs matmul:
         # bmm is used when both are batches:
         # B x n x m times B x m x p = B x n x p
         # it's better to use matmul when batch x not batch
         # try to write explicit code: mm, bmm, matmul
 
+        # mask is triu matrix where 1 = mask
+        # is applied to attention scores. future positions set to -inf
+        # then softmax turn this to 0
         if mask is not None:
-            reshaped_mask = mask.reshape(scores.shape)
-            scores = scores.masked_fill(reshaped_mask, float('-inf'))
+            # reshaped_mask = mask.reshape(scores.shape)
+            # mask broadcastable to (B, h, N, N)
+            scores = scores.masked_fill(mask, float('-inf'))
 
-        attention_dist = F.softmax(scores, dim=-1)
-        context = torch.bmm(attention_dist, V)
+        attention_dist = F.softmax(scores, dim=-1) # B x h x N x N
+        context = torch.matmul(attention_dist, V) # B x h x N x d_k
 
         return context, attention_dist
 
@@ -63,10 +67,12 @@ class multi_head_attention(nn.Module):
         self.W_v = nn.Linear(self.d_k, self.d_k)
         self.W_o = nn.Linear(self.d_k, self.d_k)
 
-    def forward(self, Q: torch.Tensor, K: torch.Tensor, V: torch.Tensor, mask: Optional[torch.Tensor] = None):
+    def forward(self, Q: torch.Tensor, K: torch.Tensor, V: torch.Tensor, mask: Optional[torch.Tensor]):
         B = V.size(0) # batch size
         
         # linear proj
+        # QKV can all be the same input sequence or smth different
+        # so this makes this class more flexible
         Q = self.W_q(Q)
         K = self.W_k(K)
         V = self.W_v(V)
