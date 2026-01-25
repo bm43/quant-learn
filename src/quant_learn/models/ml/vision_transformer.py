@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from typing import Optional, Tuple
 
 class ViTMultiHeadSelfAttention(nn.Module):
+    
     def __init__(self, dim: int, num_heads: int = 8, attn_drop: float = 0.0, proj_drop: float = 0.0):
         super().__init__()
         assert dim % num_heads == 0
@@ -26,7 +27,7 @@ class ViTMultiHeadSelfAttention(nn.Module):
         """
         B, N, _ = x.shape
 
-        qkv = self.qkv(x)  # (B, N, 3*dim)
+        qkv = self.qkv(x) # (B, N, 3*dim)
         qkv = qkv.reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]  # each: (B, h, N, head_dim)
 
